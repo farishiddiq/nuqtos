@@ -1,643 +1,1875 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-width=1.0">
-    <title>Sistem Manajemen Cleaning Service</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            /* Apple Colors */
-            --color-apple-blue: #0071e3;
-            --color-link-blue: #0066cc;
-            --color-signal-blue: #2997ff;
-            --color-carbon: #1d1d1f;
-            --color-frost: #f5f5f7;
-            --color-ice: #f4f8fb;
-            --color-smoke: #333333;
-            --color-ash: #707070;
-            --color-pebble: #e2e2e5;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CleanPro — Business Management System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 
-            /* Typography */
-            --font-main: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  :root {
+    --color-apple-blue: #0071e3;
+    --color-link-blue: #0066cc;
+    --color-signal-blue: #2997ff;
+    --color-carbon: #1d1d1f;
+    --color-frost: #f5f5f7;
+    --color-ice: #f4f8fb;
+    --color-smoke: #333333;
+    --color-graphite: #474747;
+    --color-ash: #707070;
+    --color-mist: #858585;
+    --color-onyx: #000000;
+    --color-pebble: #e2e2e5;
+    --radius-cards: 18px;
+    --radius-inputs: 12px;
+    --radius-buttons: 980px;
+    --card-padding: 24px;
+    --shadow-glass: 0 8px 32px rgba(0,0,0,0.08), 0 1.5px 6px rgba(0,0,0,0.04);
+    --shadow-xl: rgba(0,0,0,0.13) 3px 5px 30px 0px;
+  }
 
-            /* Spacing & Layout */
-            --spacing-8: 8px;
-            --spacing-12: 12px;
-            --spacing-16: 16px;
-            --spacing-24: 24px;
-            --spacing-40: 40px;
-            --spacing-64: 64px;
-            
-            /* Radii */
-            --radius-cards: 8px;
-            --radius-inputs: 8px;
-            --radius-buttons: 980px;
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-            /* Rate */
-            --rate-per-hour: 400;
-        }
+  body {
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    background: var(--color-frost);
+    color: var(--color-carbon);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--color-pebble); border-radius: 99px; }
 
-        body {
-            font-family: var(--font-main);
-            background-color: var(--color-frost);
-            color: var(--color-carbon);
-            line-height: 1.47;
-            letter-spacing: -0.016em;
-            overflow-x: hidden;
-        }
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    background: rgba(245,245,247,0.82);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; height: 52px;
+    transition: background 0.3s;
+  }
+  .nav-logo {
+    font-size: 18px; font-weight: 700; letter-spacing: -0.5px;
+    color: var(--color-carbon); display: flex; align-items: center; gap: 8px;
+    cursor: pointer;
+  }
+  .nav-logo-icon {
+    width: 28px; height: 28px; background: var(--color-apple-blue);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #fff;
+  }
+  .nav-tabs {
+    display: flex; gap: 4px; align-items: center;
+  }
+  .nav-tab {
+    padding: 6px 16px; border-radius: 980px; font-size: 13px; font-weight: 500;
+    color: var(--color-graphite); cursor: pointer; border: none; background: transparent;
+    transition: all 0.2s; letter-spacing: -0.1px;
+  }
+  .nav-tab:hover { color: var(--color-carbon); background: rgba(0,0,0,0.05); }
+  .nav-tab.active {
+    background: var(--color-carbon); color: #fff;
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .role-badge {
+    font-size: 11px; font-weight: 600; padding: 4px 12px;
+    border-radius: 980px; letter-spacing: 0.3px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .role-badge.admin { background: var(--color-carbon); color: #fff; }
+  .role-badge.viewer { background: var(--color-pebble); color: var(--color-carbon); }
 
-        /* Parallax Background with Blue Prop Abstract Elements */
-        .parallax-bg {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: -1;
-            background: var(--color-frost);
-            overflow: hidden;
-        }
-        
-        .blue-prop-1 {
-            position: absolute;
-            top: -10%; right: -5%;
-            width: 400px; height: 400px;
-            background: radial-gradient(circle, var(--color-signal-blue) 0%, transparent 70%);
-            opacity: 0.15;
-            border-radius: 50%;
-            filter: blur(40px);
-            animation: float 10s infinite ease-in-out;
-        }
+  /* ── MAIN LAYOUT ── */
+  main { padding-top: 52px; }
 
-        .blue-prop-2 {
-            position: absolute;
-            bottom: 10%; left: -10%;
-            width: 500px; height: 500px;
-            background: radial-gradient(circle, var(--color-apple-blue) 0%, transparent 70%);
-            opacity: 0.1;
-            border-radius: 50%;
-            filter: blur(60px);
-            animation: float 15s infinite ease-in-out reverse;
-        }
+  /* ── PAGE ── */
+  .page { display: none; }
+  .page.active { display: block; }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-30px) scale(1.05); }
-        }
+  /* ── HERO ── */
+  .hero {
+    min-height: 380px; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #fff 0%, var(--color-ice) 60%, #e8f4ff 100%);
+    padding: 60px 40px 40px;
+  }
+  .hero-content { text-align: center; position: relative; z-index: 2; }
+  .hero-eyebrow {
+    font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
+    color: var(--color-signal-blue); text-transform: uppercase; margin-bottom: 12px;
+  }
+  .hero-title {
+    font-size: clamp(36px, 5vw, 56px); font-weight: 700;
+    letter-spacing: -1.5px; line-height: 1.07; color: var(--color-carbon);
+    margin-bottom: 12px;
+  }
+  .hero-sub {
+    font-size: 19px; font-weight: 300; color: var(--color-ash);
+    letter-spacing: -0.1px; margin-bottom: 28px;
+  }
+  .hero-props {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  }
+  .prop {
+    position: absolute; opacity: 0.13;
+    animation: floatProp 6s ease-in-out infinite;
+  }
+  .prop svg { filter: drop-shadow(0 4px 12px rgba(41,151,255,0.25)); }
+  .prop:nth-child(1) { top: 15%; left: 6%; animation-delay: 0s; }
+  .prop:nth-child(2) { top: 20%; right: 8%; animation-delay: 1.5s; }
+  .prop:nth-child(3) { bottom: 18%; left: 14%; animation-delay: 3s; }
+  .prop:nth-child(4) { bottom: 12%; right: 6%; animation-delay: 0.8s; }
+  .prop:nth-child(5) { top: 50%; left: 2%; animation-delay: 2s; }
+  @keyframes floatProp {
+    0%,100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-18px) rotate(6deg); }
+  }
 
-        /* Nav Bar */
-        nav {
-            background: rgba(29, 29, 31, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            width: 100%;
-            padding: var(--spacing-8) 0;
-            position: fixed;
-            top: 0;
-            z-index: 1000;
-            border-bottom: 1px solid var(--color-smoke);
-        }
+  /* ── SECTION ── */
+  .section { padding: 40px 40px; }
+  .section-title {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+    color: var(--color-carbon); margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--color-signal-blue);
+  }
 
-        .nav-content {
-            max-width: 980px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 var(--spacing-16);
-        }
+  /* ── GLASS CARD ── */
+  .glass-card {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.8);
+    border-radius: var(--radius-cards);
+    box-shadow: var(--shadow-glass);
+    padding: var(--card-padding);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
+  }
 
-        .nav-content h1 {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--color-frost);
-            letter-spacing: normal;
-        }
+  /* ── STATS GRID ── */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px; margin-bottom: 32px;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.85);
+    border-radius: var(--radius-cards);
+    box-shadow: var(--shadow-glass);
+    padding: 24px;
+    position: relative; overflow: hidden;
+    transition: transform 0.3s;
+  }
+  .stat-card:hover { transform: translateY(-3px); }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--color-signal-blue), var(--color-apple-blue));
+    opacity: 0.6;
+  }
+  .stat-label { font-size: 12px; font-weight: 600; color: var(--color-ash); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-size: 28px; font-weight: 700; letter-spacing: -1px; color: var(--color-carbon); }
+  .stat-sub { font-size: 12px; color: var(--color-mist); margin-top: 4px; }
+  .stat-icon {
+    position: absolute; right: 20px; top: 20px;
+    width: 36px; height: 36px; border-radius: 10px;
+    background: rgba(41,151,255,0.1); display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
 
-        /* Layout & Container */
-        main {
-            max-width: 980px;
-            margin: 100px auto var(--spacing-64);
-            padding: 0 var(--spacing-16);
-        }
+  /* ── GRID 2COL ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  @media(max-width: 900px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
 
-        section {
-            margin-bottom: var(--spacing-64);
-        }
+  /* ── BUTTON ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 22px; border-radius: var(--radius-buttons);
+    font-size: 14px; font-weight: 600; cursor: pointer; border: none;
+    transition: all 0.2s; letter-spacing: -0.1px; white-space: nowrap;
+  }
+  .btn-primary { background: var(--color-apple-blue); color: #fff; }
+  .btn-primary:hover { background: #0077ed; transform: scale(1.02); }
+  .btn-secondary { background: transparent; border: 1.5px solid var(--color-link-blue); color: var(--color-link-blue); }
+  .btn-secondary:hover { background: rgba(0,102,204,0.06); }
+  .btn-danger { background: transparent; border: 1.5px solid #ff3b30; color: #ff3b30; }
+  .btn-danger:hover { background: rgba(255,59,48,0.06); }
+  .btn-ghost { background: transparent; color: var(--color-ash); border: 1.5px solid var(--color-pebble); }
+  .btn-ghost:hover { border-color: var(--color-mist); color: var(--color-carbon); }
+  .btn-sm { padding: 6px 14px; font-size: 12px; }
+  .btn-icon { width: 36px; height: 36px; padding: 0; border-radius: 50%; }
 
-        /* Typography */
-        h2 {
-            font-size: 40px;
-            font-weight: 600;
-            letter-spacing: 0.011em;
-            margin-bottom: var(--spacing-24);
-        }
-        h3 {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: var(--spacing-16);
-        }
-        .subtitle {
-            font-size: 21px;
-            font-weight: 300;
-            color: var(--color-ash);
-            margin-bottom: var(--spacing-40);
-        }
+  /* ── FORM ── */
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--color-ash); letter-spacing: 0.3px; text-transform: uppercase; margin-bottom: 6px; display: block; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%; padding: 10px 14px; border-radius: var(--radius-inputs);
+    border: 1.5px solid var(--color-pebble); background: rgba(255,255,255,0.8);
+    font-size: 14px; font-family: inherit; color: var(--color-carbon);
+    transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--color-apple-blue);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.12);
+    background: #fff;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 
-        /* Glassmorphism Cards */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border-radius: var(--radius-cards);
-            padding: var(--spacing-24);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 24px;
-            transition: transform 0.3s ease;
-        }
+  /* ── STARS ── */
+  .star-rating { display: flex; gap: 4px; }
+  .star {
+    font-size: 22px; cursor: pointer; color: var(--color-pebble);
+    transition: color 0.15s, transform 0.15s;
+  }
+  .star.active { color: #ff9f0a; }
+  .star:hover { transform: scale(1.2); }
 
-        .glass-card:hover {
-            transform: translateY(-2px);
-        }
+  /* ── TABLE ── */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: var(--radius-cards);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: rgba(245,245,247,0.9); font-weight: 600; color: var(--color-ash);
+    text-align: left; padding: 12px 16px; font-size: 11px; letter-spacing: 0.5px;
+    text-transform: uppercase; border-bottom: 1px solid var(--color-pebble);
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid rgba(226,226,229,0.5); transition: background 0.15s; }
+  tbody tr:hover { background: rgba(41,151,255,0.04); }
+  tbody td { padding: 12px 16px; color: var(--color-carbon); vertical-align: middle; }
+  tbody tr:last-child { border-bottom: none; }
 
-        /* Grids */
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: var(--spacing-24);
-        }
+  /* ── BADGE ── */
+  .badge {
+    display: inline-flex; align-items: center; padding: 3px 10px;
+    border-radius: 980px; font-size: 11px; font-weight: 600; letter-spacing: 0.2px;
+  }
+  .badge-blue { background: rgba(41,151,255,0.12); color: var(--color-signal-blue); }
+  .badge-green { background: rgba(52,199,89,0.12); color: #34c759; }
+  .badge-orange { background: rgba(255,159,10,0.12); color: #ff9f0a; }
+  .badge-red { background: rgba(255,59,48,0.12); color: #ff3b30; }
+  .badge-gray { background: var(--color-pebble); color: var(--color-ash); }
 
-        /* Dashboard Stats */
-        .stat-value {
-            font-size: 44px;
-            font-weight: 600;
-            letter-spacing: -0.01em;
-            color: var(--color-carbon);
-            margin-top: var(--spacing-8);
-        }
-        .stat-label {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--color-ash);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
+  /* ── TOGGLE ── */
+  .toggle-wrap { display: flex; align-items: center; gap: 10px; }
+  .toggle {
+    position: relative; width: 44px; height: 26px;
+    cursor: pointer;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0; border-radius: 13px;
+    background: var(--color-pebble); transition: background 0.25s;
+  }
+  .toggle input:checked + .toggle-track { background: #34c759; }
+  .toggle-thumb {
+    position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; transition: transform 0.25s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(18px); }
 
-        /* Forms & Inputs */
-        .form-group {
-            margin-bottom: var(--spacing-16);
-        }
-        label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: var(--spacing-8);
-            color: var(--color-carbon);
-        }
-        input, select {
-            width: 100%;
-            padding: 12px;
-            border-radius: var(--radius-inputs);
-            border: 1px solid var(--color-pebble);
-            background: var(--color-frost);
-            font-size: 17px;
-            font-family: var(--font-main);
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        input:focus, select:focus {
-            border-color: var(--color-apple-blue);
-            box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.2);
-        }
+  /* ── CHART ── */
+  .chart-wrap { position: relative; height: 180px; }
+  .chart-bars {
+    display: flex; align-items: flex-end; gap: 8px; height: 160px;
+    padding: 0 4px;
+  }
+  .chart-bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 4px; }
+  .chart-bar-inner { display: flex; gap: 3px; align-items: flex-end; width: 100%; justify-content: center; }
+  .chart-bar {
+    border-radius: 4px 4px 0 0; min-width: 14px; flex: 1; max-width: 28px;
+    transition: height 0.7s cubic-bezier(.4,0,.2,1), opacity 0.3s;
+    cursor: pointer; position: relative;
+  }
+  .chart-bar:hover { opacity: 0.8; }
+  .chart-bar.owner { background: linear-gradient(180deg, var(--color-signal-blue), var(--color-apple-blue)); }
+  .chart-bar.mitra { background: linear-gradient(180deg, #34c759, #248a3d); }
+  .chart-label { font-size: 10px; color: var(--color-mist); font-weight: 500; }
+  .chart-legend { display: flex; gap: 16px; margin-top: 10px; }
+  .chart-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--color-ash); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-        /* Buttons */
-        .btn {
-            display: inline-block;
-            border-radius: var(--radius-buttons);
-            padding: 11px 24px;
-            font-size: 17px;
-            font-weight: 400;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-            text-align: center;
-        }
-        .btn-primary {
-            background-color: var(--color-apple-blue);
-            color: #fff;
-        }
-        .btn-primary:hover { background-color: #0077ED; }
-        
-        .btn-secondary {
-            background-color: transparent;
-            color: var(--color-link-blue);
-            border: 1px solid var(--color-link-blue);
-        }
-        .btn-secondary:hover { background-color: rgba(0, 102, 204, 0.05); }
+  /* ── LEADERBOARD ── */
+  .lb-row {
+    display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+    border-radius: 12px; margin-bottom: 8px;
+    background: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.85);
+    backdrop-filter: blur(10px); transition: all 0.25s;
+  }
+  .lb-row:hover { transform: translateX(4px); background: rgba(255,255,255,0.85); }
+  .lb-rank { font-size: 18px; font-weight: 700; color: var(--color-pebble); width: 28px; text-align: center; }
+  .lb-rank.gold { color: #ff9f0a; }
+  .lb-rank.silver { color: var(--color-mist); }
+  .lb-rank.bronze { color: #cd7f32; }
+  .lb-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-signal-blue), var(--color-apple-blue));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .lb-info { flex: 1; }
+  .lb-name { font-size: 14px; font-weight: 600; color: var(--color-carbon); }
+  .lb-sub { font-size: 11px; color: var(--color-ash); margin-top: 2px; }
+  .lb-score { text-align: right; }
+  .lb-score-val { font-size: 18px; font-weight: 700; color: var(--color-carbon); }
+  .lb-score-label { font-size: 10px; color: var(--color-mist); }
+  .lb-stars { color: #ff9f0a; font-size: 12px; }
 
-        .btn-danger {
-            background-color: transparent;
-            color: #e30000;
-            border: 1px solid #e30000;
-            padding: 6px 12px;
-            font-size: 12px;
-        }
+  /* ── MITRA CARD ── */
+  .mitra-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 16px; }
+  .mitra-card {
+    background: rgba(255,255,255,0.75); backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.85); border-radius: var(--radius-cards);
+    box-shadow: var(--shadow-glass); padding: 22px;
+    transition: all 0.3s; position: relative; overflow: hidden;
+  }
+  .mitra-card:hover { transform: translateY(-4px); box-shadow: 0 20px 48px rgba(0,0,0,0.10); }
+  .mitra-card.tawaquf { opacity: 0.65; }
+  .mitra-card.tawaquf::after {
+    content: 'TAWAQUF'; position: absolute; top: 14px; right: -24px;
+    background: #ff9f0a; color: #fff; font-size: 9px; font-weight: 700;
+    padding: 3px 32px; transform: rotate(35deg); letter-spacing: 1px;
+  }
+  .mitra-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .mitra-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .mitra-name { font-size: 16px; font-weight: 700; color: var(--color-carbon); }
+  .mitra-role { font-size: 12px; color: var(--color-ash); margin-top: 2px; }
+  .mitra-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .mitra-stat { background: var(--color-frost); border-radius: 10px; padding: 10px; text-align: center; }
+  .mitra-stat-val { font-size: 18px; font-weight: 700; color: var(--color-carbon); }
+  .mitra-stat-lbl { font-size: 10px; color: var(--color-ash); margin-top: 2px; letter-spacing: 0.3px; }
+  .mitra-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
-        /* Tables & Lists */
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: var(--spacing-16);
-        }
-        .data-table th, .data-table td {
-            padding: 12px var(--spacing-8);
-            text-align: left;
-            border-bottom: 1px solid var(--color-pebble);
-            font-size: 14px;
-        }
-        .data-table th {
-            font-weight: 600;
-            color: var(--color-ash);
-        }
+  /* ── INVENTORY ── */
+  .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 14px; }
+  .inv-card {
+    background: rgba(255,255,255,0.75); backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.85); border-radius: var(--radius-cards);
+    box-shadow: var(--shadow-glass); padding: 20px; text-align: center;
+  }
+  .inv-icon { font-size: 32px; margin-bottom: 10px; }
+  .inv-name { font-size: 13px; font-weight: 600; color: var(--color-carbon); margin-bottom: 8px; }
+  .inv-bar-wrap { background: var(--color-pebble); border-radius: 99px; height: 6px; overflow: hidden; margin-bottom: 6px; }
+  .inv-bar { height: 100%; border-radius: 99px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+  .inv-count { font-size: 11px; color: var(--color-ash); }
+  .inv-ctrl { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; }
+  .inv-btn {
+    width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--color-pebble); font-size: 16px; font-weight: 600;
+    color: var(--color-carbon); transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+  }
+  .inv-btn:hover { background: var(--color-carbon); color: #fff; }
+  .inv-val { font-size: 20px; font-weight: 700; color: var(--color-carbon); min-width: 32px; text-align: center; }
 
-        /* Toggle Switch for Tawaquf */
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
-        }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute; cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: var(--color-pebble);
-            transition: .4s;
-            border-radius: 24px;
-        }
-        .slider:before {
-            position: absolute; content: "";
-            height: 18px; width: 18px; left: 3px; bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        input:checked + .slider { background-color: var(--color-signal-blue); }
-        input:checked + .slider:before { transform: translateX(20px); }
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.35); backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    padding: 20px;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: rgba(255,255,255,0.95); backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.9); border-radius: 22px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.18); padding: 32px;
+    width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+    transform: translateY(24px) scale(0.97); transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+  }
+  .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .modal-title { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--color-pebble); font-size: 16px; color: var(--color-ash);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { background: var(--color-carbon); color: #fff; }
 
-        .badge {
-            padding: 4px 8px;
-            border-radius: var(--radius-buttons);
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .badge-active { background: #e3f5e1; color: #1d7c1d; }
-        .badge-tawaquf { background: var(--color-pebble); color: var(--color-ash); }
+  /* ── TOAST ── */
+  .toast-container { position: fixed; top: 70px; right: 24px; z-index: 3000; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: rgba(29,29,31,0.92); backdrop-filter: blur(12px);
+    color: #fff; border-radius: 12px; padding: 12px 18px;
+    font-size: 13px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+    display: flex; align-items: center; gap: 8px;
+  }
+  @keyframes toastIn { from { opacity:0; transform:translateX(24px); } to { opacity:1; transform:translateX(0); } }
+  @keyframes toastOut { from { opacity:1; } to { opacity:0; } }
 
-        /* Flex helpers */
-        .flex-between { display: flex; justify-content: space-between; align-items: center; }
-        .flex-gap { display: flex; gap: var(--spacing-12); align-items: center; }
-    </style>
+  /* ── PARALLAX ── */
+  .parallax-layer { will-change: transform; transition: transform 0.1s linear; }
+
+  /* ── UTILITY ── */
+  .text-center { text-align: center; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .mb-16 { margin-bottom: 16px; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .gap-8 { gap: 8px; }
+  .gap-12 { gap: 12px; }
+  .justify-between { justify-content: space-between; }
+  .divider { height: 1px; background: var(--color-pebble); margin: 20px 0; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px;
+    background: rgba(41,151,255,0.08); border: 1px solid rgba(41,151,255,0.2);
+    border-radius: 980px; font-size: 11px; color: var(--color-signal-blue); font-weight: 600;
+  }
+  .empty-state { text-align: center; padding: 48px 24px; color: var(--color-mist); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+  .progress-bar { height: 4px; border-radius: 99px; background: var(--color-pebble); overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--color-signal-blue), var(--color-apple-blue)); transition: width 0.6s; }
+
+  /* ── VIEWER MODE ── */
+  .viewer-only { display: none; }
+  .admin-only { display: block; }
+  body.viewer-mode .viewer-only { display: block; }
+  body.viewer-mode .admin-only { display: none; }
+
+  /* Colors for avatars */
+  .av-blue { background: linear-gradient(135deg, #2997ff, #0071e3); }
+  .av-green { background: linear-gradient(135deg, #34c759, #248a3d); }
+  .av-orange { background: linear-gradient(135deg, #ff9f0a, #ff6b00); }
+  .av-purple { background: linear-gradient(135deg, #bf5af2, #9b59b6); }
+  .av-red { background: linear-gradient(135deg, #ff3b30, #c0392b); }
+  .av-teal { background: linear-gradient(135deg, #5ac8fa, #007aff); }
+
+  /* Week filter */
+  .week-filter {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .week-btn {
+    padding: 6px 14px; border-radius: 980px; font-size: 12px; font-weight: 600;
+    border: 1.5px solid var(--color-pebble); background: transparent;
+    color: var(--color-ash); cursor: pointer; transition: all 0.2s;
+  }
+  .week-btn.active { background: var(--color-carbon); color: #fff; border-color: var(--color-carbon); }
+
+  /* Expense list */
+  .expense-item { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .expense-item .form-input { flex: 1; }
+
+  /* Tabs inside page */
+  .inner-tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+  .inner-tab {
+    padding: 7px 18px; border-radius: 980px; font-size: 13px; font-weight: 600;
+    border: 1.5px solid var(--color-pebble); background: transparent;
+    color: var(--color-ash); cursor: pointer; transition: all 0.2s;
+  }
+  .inner-tab.active { background: var(--color-carbon); color: #fff; border-color: var(--color-carbon); }
+
+  @media(max-width:640px) {
+    nav { padding: 0 16px; }
+    .section { padding: 24px 16px; }
+    .hero { padding: 60px 20px 32px; }
+    .form-row, .form-row-3 { grid-template-columns: 1fr; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .modal { padding: 24px; }
+    .nav-tabs { display: none; }
+  }
+</style>
 </head>
 <body>
 
-    <div class="parallax-bg">
-        <div class="blue-prop-1"></div>
-        <div class="blue-prop-2"></div>
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon">✦</div>
+    CleanPro
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('jobs')">Pekerjaan</button>
+    <button class="nav-tab" onclick="showPage('mitra')">Tim Mitra</button>
+    <button class="nav-tab" onclick="showPage('leaderboard')">Leaderboard</button>
+    <button class="nav-tab" onclick="showPage('inventory')">Inventori</button>
+  </div>
+  <div class="nav-right">
+    <button class="role-badge admin" id="roleBadge" onclick="toggleRole()">👑 Admin</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ══════════════════════════════════════════
+     PAGE: DASHBOARD
+══════════════════════════════════════════ -->
+<div class="page active" id="page-dashboard">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-props parallax-layer" data-speed="0.3">
+      <!-- Spray Bottle -->
+      <div class="prop">
+        <svg width="80" height="120" viewBox="0 0 80 120" fill="none">
+          <rect x="30" y="40" width="30" height="70" rx="8" fill="#2997ff"/>
+          <rect x="20" y="50" width="20" height="12" rx="4" fill="#2997ff"/>
+          <rect x="10" y="56" width="12" height="6" rx="3" fill="#2997ff"/>
+          <circle cx="45" cy="55" r="6" fill="rgba(255,255,255,0.5)"/>
+          <rect x="35" y="30" width="20" height="12" rx="3" fill="#2997ff"/>
+          <circle cx="45" cy="10" r="8" fill="#2997ff"/>
+          <path d="M45 18 L45 30" stroke="#2997ff" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <!-- Sponge -->
+      <div class="prop">
+        <svg width="90" height="60" viewBox="0 0 90 60" fill="none">
+          <rect x="5" y="10" width="80" height="40" rx="12" fill="#2997ff"/>
+          <rect x="5" y="10" width="80" height="18" rx="10" fill="#2997ff" opacity="0.6"/>
+          <circle cx="22" cy="35" r="5" fill="rgba(255,255,255,0.3)"/>
+          <circle cx="45" cy="30" r="4" fill="rgba(255,255,255,0.3)"/>
+          <circle cx="68" cy="36" r="5" fill="rgba(255,255,255,0.3)"/>
+          <circle cx="34" cy="42" r="3" fill="rgba(255,255,255,0.25)"/>
+          <circle cx="56" cy="41" r="4" fill="rgba(255,255,255,0.25)"/>
+        </svg>
+      </div>
+      <!-- Water Drop -->
+      <div class="prop">
+        <svg width="60" height="80" viewBox="0 0 60 80" fill="none">
+          <path d="M30 5 Q50 30 50 50 A20 20 0 0 1 10 50 Q10 30 30 5Z" fill="#2997ff"/>
+          <ellipse cx="22" cy="42" rx="5" ry="8" fill="rgba(255,255,255,0.35)" transform="rotate(-20 22 42)"/>
+        </svg>
+      </div>
+      <!-- Bucket -->
+      <div class="prop">
+        <svg width="70" height="80" viewBox="0 0 70 80" fill="none">
+          <path d="M10 25 L15 70 Q15 75 35 75 Q55 75 55 70 L60 25Z" fill="#2997ff"/>
+          <ellipse cx="35" cy="25" rx="25" ry="8" fill="#2997ff" opacity="0.8"/>
+          <path d="M15 10 Q35 0 55 10" stroke="#2997ff" stroke-width="5" stroke-linecap="round" fill="none"/>
+          <ellipse cx="35" cy="35" rx="12" ry="5" fill="rgba(255,255,255,0.25)"/>
+        </svg>
+      </div>
+      <!-- Microfiber -->
+      <div class="prop">
+        <svg width="80" height="50" viewBox="0 0 80 50" fill="none">
+          <rect x="5" y="15" width="70" height="22" rx="11" fill="#2997ff"/>
+          <path d="M15 15 Q15 5 25 5 L55 5 Q65 5 65 15" stroke="#2997ff" stroke-width="4" fill="none"/>
+          <line x1="20" y1="26" x2="60" y2="26" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-dasharray="4 4"/>
+        </svg>
+      </div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">Business Management System</div>
+      <h1 class="hero-title">CleanPro</h1>
+      <p class="hero-sub">Kelola, analisa, dan kembangkan bisnis kebersihan Anda.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="openModal('modalJob')">+ Tambah Pekerjaan</button>
+        <button class="btn btn-secondary" onclick="showPage('leaderboard')">Lihat Leaderboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="section">
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <!-- CHARTS & QUICK INFO -->
+    <div class="grid-2" style="margin-bottom:24px;">
+      <div class="glass-card">
+        <div class="flex items-center justify-between mb-16" style="margin-bottom:16px;">
+          <div class="section-title" style="margin:0;font-size:16px;"><div class="dot"></div> Pendapatan Mingguan</div>
+          <div class="week-filter" id="weekFilter"></div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-bars" id="chartBars"></div>
+        </div>
+        <div class="chart-legend">
+          <div class="chart-legend-item"><div class="legend-dot" style="background:var(--color-signal-blue)"></div> Owner</div>
+          <div class="chart-legend-item"><div class="legend-dot" style="background:#34c759"></div> Mitra</div>
+        </div>
+      </div>
+      <div class="glass-card">
+        <div class="section-title" style="margin-bottom:16px;font-size:16px;"><div class="dot"></div> Job Terbaru</div>
+        <div id="recentJobs"></div>
+      </div>
     </div>
 
-    <nav>
-        <div class="nav-content">
-            <h1>CleanAppHQ</h1>
-            <div style="font-size: 12px; color: var(--color-ash);">Mode Admin (Owner)</div>
+    <!-- OWNER NET PROFIT DETAIL -->
+    <div class="glass-card admin-only">
+      <div class="section-title" style="margin-bottom:16px;font-size:16px;"><div class="dot"></div> Ringkasan Keuangan Owner</div>
+      <div id="ownerFinancials"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE: JOBS
+══════════════════════════════════════════ -->
+<div class="page" id="page-jobs">
+  <div class="section">
+    <div class="flex items-center justify-between mb-16" style="margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+      <div class="section-title" style="margin:0;"><div class="dot"></div> Daftar Pekerjaan</div>
+      <div class="flex gap-8" style="flex-wrap:wrap;">
+        <input class="form-input" id="jobSearch" placeholder="🔍 Cari pekerjaan..." style="width:220px;" oninput="renderJobsTable()">
+        <button class="btn btn-primary admin-only" onclick="openModal('modalJob')">+ Tambah Job</button>
+      </div>
+    </div>
+    <div class="glass-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Tanggal</th>
+              <th>Pekerja</th>
+              <th>Daerah</th>
+              <th>Durasi</th>
+              <th>Upah Kotor</th>
+              <th>Ke Perusahaan</th>
+              <th>Quality</th>
+              <th class="admin-only">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="jobsTableBody"></tbody>
+        </table>
+      </div>
+      <div id="jobsEmpty" class="empty-state" style="display:none;">
+        <div class="icon">📋</div>
+        <p>Belum ada data pekerjaan. Tambahkan job pertama!</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE: MITRA
+══════════════════════════════════════════ -->
+<div class="page" id="page-mitra">
+  <div class="section">
+    <div class="flex items-center justify-between mb-16" style="margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+      <div class="section-title" style="margin:0;"><div class="dot"></div> Tim Mitra</div>
+      <button class="btn btn-primary admin-only" onclick="openModal('modalAddMitra')">+ Tambah Mitra</button>
+    </div>
+    <div class="mitra-grid" id="mitraGrid"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE: LEADERBOARD
+══════════════════════════════════════════ -->
+<div class="page" id="page-leaderboard">
+  <div class="section">
+    <div class="section-title"><div class="dot"></div> Leaderboard Mitra</div>
+    <div class="inner-tabs">
+      <button class="inner-tab active" onclick="setLbPeriod('week',this)">Minggu Ini</button>
+      <button class="inner-tab" onclick="setLbPeriod('month',this)">Bulan Ini</button>
+      <button class="inner-tab" onclick="setLbPeriod('all',this)">All-Time</button>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="glass-card">
+          <div class="section-title" style="font-size:15px;margin-bottom:16px;"><div class="dot"></div> Ranking Pekerja</div>
+          <div id="leaderboardList"></div>
         </div>
-    </nav>
+      </div>
+      <div class="glass-card">
+        <div class="section-title" style="font-size:15px;margin-bottom:16px;"><div class="dot"></div> Statistik Periode</div>
+        <div id="lbStats"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <main>
-        <section>
-            <h2>Ringkasan Finansial</h2>
-            <p class="subtitle">Tarif Jasa: 400 EGP/Jam &middot; Sistem Transparan Apple-style.</p>
-            
-            <div class="grid-3">
-                <div class="glass-card">
-                    <div class="stat-label">Total Pemasukan Kotor</div>
-                    <div class="stat-value" id="gross-revenue">0 EGP</div>
-                </div>
-                <div class="glass-card">
-                    <div class="stat-label">Pendapatan Bersih (Perusahaan)</div>
-                    <div class="stat-value" id="net-revenue" style="color: var(--color-apple-blue);">0 EGP</div>
-                </div>
-                <div class="glass-card">
-                    <div class="stat-label">Sisa Inventory / Alat</div>
-                    <div class="stat-value" id="inventory-count">50</div>
-                    <div style="font-size: 12px; color: var(--color-ash); margin-top: 8px;">(Berkurang otomatis tiap job)</div>
-                </div>
+<!-- ══════════════════════════════════════════
+     PAGE: INVENTORY
+══════════════════════════════════════════ -->
+<div class="page" id="page-inventory">
+  <div class="section">
+    <div class="flex items-center justify-between mb-16" style="margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+      <div class="section-title" style="margin:0;"><div class="dot"></div> Asset & Inventory Tracker</div>
+      <button class="btn btn-primary admin-only" onclick="openModal('modalAddInv')">+ Tambah Item</button>
+    </div>
+    <div class="inventory-grid" id="inventoryGrid"></div>
+  </div>
+</div>
+
+</main>
+
+<!-- ══════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════ -->
+
+<!-- MODAL: ADD JOB -->
+<div class="modal-overlay" id="modalJob">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✦ Tambah Pekerjaan</div>
+      <button class="modal-close" onclick="closeModal('modalJob')">✕</button>
+    </div>
+    <form onsubmit="submitJob(event)">
+      <div class="form-group">
+        <label class="form-label">Nama Pekerja</label>
+        <select class="form-select" id="jobWorker" required onchange="onWorkerChange()">
+          <option value="">Pilih Pekerja...</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tanggal</label>
+          <input type="date" class="form-input" id="jobDate" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Daerah Customer</label>
+          <input type="text" class="form-input" id="jobArea" placeholder="Contoh: Maadi, Cairo" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Jam Kerja</label>
+          <input type="number" class="form-input" id="jobHours" min="0" max="24" value="2" placeholder="Jam" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Menit Kerja</label>
+          <input type="number" class="form-input" id="jobMinutes" min="0" max="59" value="0" placeholder="Menit" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quality Score (Rating Customer)</label>
+        <div class="star-rating" id="starRating">
+          <span class="star" data-val="1" onclick="setStars(1)">★</span>
+          <span class="star" data-val="2" onclick="setStars(2)">★</span>
+          <span class="star" data-val="3" onclick="setStars(3)">★</span>
+          <span class="star" data-val="4" onclick="setStars(4)">★</span>
+          <span class="star" data-val="5" onclick="setStars(5)">★</span>
+        </div>
+        <input type="hidden" id="jobQuality" value="0">
+      </div>
+      <!-- OWNER EXPENSES (only shown if owner) -->
+      <div id="ownerExpenses" style="display:none;">
+        <div class="divider"></div>
+        <div class="form-group">
+          <label class="form-label">Pengeluaran Sesi (COGS)</label>
+          <div id="expenseList">
+            <div class="expense-item">
+              <input type="text" class="form-input" placeholder="Item (e.g., Sabun)" style="flex:1.5;">
+              <input type="number" class="form-input" placeholder="Biaya (EGP)" style="flex:1;" min="0">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="removeExpense(this)">✕</button>
             </div>
-        </section>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm mt-16" onclick="addExpense()" style="margin-top:8px;">+ Tambah Item</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div id="jobPreview" style="background:var(--color-frost);border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--color-ash);">
+        Isi form untuk melihat preview kalkulasi...
+      </div>
+      <div class="flex gap-8" style="justify-content:flex-end;">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modalJob')">Batal</button>
+        <button type="submit" class="btn btn-primary">Simpan Pekerjaan</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-        <section class="glass-card">
-            <h3>Input Pekerjaan Baru</h3>
-            <form id="job-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-                <div class="form-group">
-                    <label>Pekerja</label>
-                    <select id="worker-select" onchange="toggleOwnerFields()" required>
-                        <option value="Owner">Owner</option>
-                        </select>
-                </div>
-                <div class="form-group">
-                    <label>Tanggal</label>
-                    <input type="date" id="job-date" required>
-                </div>
-                <div class="form-group">
-                    <label>Daerah Customer</label>
-                    <input type="text" id="job-area" placeholder="Misal: Nasr City" required>
-                </div>
-                <div class="form-group">
-                    <label>Durasi Kerja</label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="number" id="job-hours" placeholder="Jam" min="0" required>
-                        <input type="number" id="job-minutes" placeholder="Menit" min="0" max="59" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Quality Score (Bintang 1-5)</label>
-                    <input type="number" id="job-rating" min="1" max="5" step="0.1" placeholder="5" required>
-                </div>
-                <div class="form-group" id="owner-expenses-group">
-                    <label>Pengeluaran Sesi (Khusus Owner - EGP)</label>
-                    <input type="number" id="job-expenses" min="0" placeholder="Biaya Sabun, Transport, dll">
-                </div>
-                <div style="grid-column: span 2; display: flex; justify-content: flex-end; gap: 12px;">
-                    <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
-                    <button type="submit" class="btn btn-primary">Simpan Data</button>
-                </div>
-            </form>
-        </section>
+<!-- MODAL: EDIT JOB -->
+<div class="modal-overlay" id="modalEditJob">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✎ Edit Pekerjaan</div>
+      <button class="modal-close" onclick="closeModal('modalEditJob')">✕</button>
+    </div>
+    <form onsubmit="submitEditJob(event)">
+      <input type="hidden" id="editJobId">
+      <div class="form-group">
+        <label class="form-label">Nama Pekerja</label>
+        <select class="form-select" id="editJobWorker" required onchange="onEditWorkerChange()"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tanggal</label>
+          <input type="date" class="form-input" id="editJobDate" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Daerah Customer</label>
+          <input type="text" class="form-input" id="editJobArea" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Jam Kerja</label>
+          <input type="number" class="form-input" id="editJobHours" min="0" max="24" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Menit Kerja</label>
+          <input type="number" class="form-input" id="editJobMinutes" min="0" max="59" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quality Score</label>
+        <div class="star-rating" id="editStarRating">
+          <span class="star" data-val="1" onclick="setEditStars(1)">★</span>
+          <span class="star" data-val="2" onclick="setEditStars(2)">★</span>
+          <span class="star" data-val="3" onclick="setEditStars(3)">★</span>
+          <span class="star" data-val="4" onclick="setEditStars(4)">★</span>
+          <span class="star" data-val="5" onclick="setEditStars(5)">★</span>
+        </div>
+        <input type="hidden" id="editJobQuality" value="0">
+      </div>
+      <div id="editOwnerExpenses" style="display:none;">
+        <div class="divider"></div>
+        <div class="form-group">
+          <label class="form-label">Pengeluaran Sesi (COGS)</label>
+          <div id="editExpenseList"></div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addEditExpense()" style="margin-top:8px;">+ Tambah Item</button>
+        </div>
+      </div>
+      <div class="flex gap-8" style="justify-content:flex-end;margin-top:20px;">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modalEditJob')">Batal</button>
+        <button type="submit" class="btn btn-primary">Update Pekerjaan</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-        <section class="glass-card">
-            <div class="flex-between">
-                <h3>Manajemen Mitra</h3>
-                <div class="flex-gap">
-                    <input type="text" id="new-mitra-name" placeholder="Nama Mitra Baru" style="padding: 8px; font-size: 14px;">
-                    <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="addMitra()">Add Mitra</button>
-                </div>
-            </div>
-            
-            <table class="data-table" id="mitra-table">
-                <thead>
-                    <tr>
-                        <th>Nama Mitra</th>
-                        <th>Status</th>
-                        <th>Mode Tawaquf</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-        </section>
+<!-- MODAL: ADD MITRA -->
+<div class="modal-overlay" id="modalAddMitra">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">+ Tambah Mitra Baru</div>
+      <button class="modal-close" onclick="closeModal('modalAddMitra')">✕</button>
+    </div>
+    <form onsubmit="submitAddMitra(event)">
+      <div class="form-group">
+        <label class="form-label">Nama Lengkap</label>
+        <input type="text" class="form-input" id="mitraName" placeholder="Nama mitra..." required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nomor HP / WhatsApp</label>
+        <input type="text" class="form-input" id="mitraPhone" placeholder="+62 812 ...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Warna Avatar</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;" id="colorPicker">
+          <div class="av-blue" style="width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;" data-color="av-blue" onclick="selectColor('av-blue',this)"></div>
+          <div class="av-green" style="width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;" data-color="av-green" onclick="selectColor('av-green',this)"></div>
+          <div class="av-orange" style="width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;" data-color="av-orange" onclick="selectColor('av-orange',this)"></div>
+          <div class="av-purple" style="width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;" data-color="av-purple" onclick="selectColor('av-purple',this)"></div>
+          <div class="av-red" style="width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;" data-color="av-red" onclick="selectColor('av-red',this)"></div>
+          <div class="av-teal" style="width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;" data-color="av-teal" onclick="selectColor('av-teal',this)"></div>
+        </div>
+        <input type="hidden" id="mitraColor" value="av-blue">
+      </div>
+      <div class="flex gap-8" style="justify-content:flex-end;margin-top:20px;">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modalAddMitra')">Batal</button>
+        <button type="submit" class="btn btn-primary">Tambah Mitra</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-        <section class="glass-card">
-            <h3>Leaderboard Mingguan</h3>
-            <p style="font-size: 14px; color: var(--color-ash); margin-bottom: 16px;">Ranking berdasarkan Total Jam Kerja & Rata-rata Quality Score.</p>
-            <table class="data-table" id="leaderboard-table">
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Nama</th>
-                        <th>Total Waktu (Jam)</th>
-                        <th>Avg Quality Score</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-        </section>
+<!-- MODAL: EDIT MITRA -->
+<div class="modal-overlay" id="modalEditMitra">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✎ Edit Mitra</div>
+      <button class="modal-close" onclick="closeModal('modalEditMitra')">✕</button>
+    </div>
+    <form onsubmit="submitEditMitra(event)">
+      <input type="hidden" id="editMitraId">
+      <div class="form-group">
+        <label class="form-label">Nama Lengkap</label>
+        <input type="text" class="form-input" id="editMitraName" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nomor HP</label>
+        <input type="text" class="form-input" id="editMitraPhone">
+      </div>
+      <div class="flex gap-8" style="justify-content:flex-end;margin-top:20px;">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modalEditMitra')">Batal</button>
+        <button type="submit" class="btn btn-primary">Update</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-    </main>
+<!-- MODAL: ADD INVENTORY -->
+<div class="modal-overlay" id="modalAddInv">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">+ Tambah Item Inventori</div>
+      <button class="modal-close" onclick="closeModal('modalAddInv')">✕</button>
+    </div>
+    <form onsubmit="submitAddInv(event)">
+      <div class="form-group">
+        <label class="form-label">Nama Item</label>
+        <input type="text" class="form-input" id="invName" placeholder="e.g., Microfiber Cloth" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Stok Saat Ini</label>
+          <input type="number" class="form-input" id="invCurrent" min="0" value="10" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stok Maksimum</label>
+          <input type="number" class="form-input" id="invMax" min="1" value="20" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ikon Emoji</label>
+        <input type="text" class="form-input" id="invIcon" placeholder="🧴 🧽 🪣 🧹" maxlength="4" value="🧴">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Berkurang per Job</label>
+        <input type="number" class="form-input" id="invDecrement" min="0" value="1" step="0.5">
+      </div>
+      <div class="flex gap-8" style="justify-content:flex-end;margin-top:20px;">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modalAddInv')">Batal</button>
+        <button type="submit" class="btn btn-primary">Tambah Item</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-    <script>
-        // State Management
-        let state = {
-            rate: 400,
-            inventory: 50,
-            grossRevenue: 0,
-            netRevenue: 0,
-            mitras: [
-                { id: 1, name: 'Tariq', isTawaquf: false },
-                { id: 2, name: 'Hassan', isTawaquf: true }
-            ],
-            jobs: []
-        };
+<!-- MODAL: CONFIRM DELETE -->
+<div class="modal-overlay" id="modalConfirm">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">⚠️ Konfirmasi</div>
+      <button class="modal-close" onclick="closeModal('modalConfirm')">✕</button>
+    </div>
+    <p id="confirmMsg" style="font-size:14px;color:var(--color-ash);margin-bottom:24px;line-height:1.5;"></p>
+    <div class="flex gap-8" style="justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeModal('modalConfirm')">Batal</button>
+      <button class="btn btn-danger" id="confirmBtn">Hapus</button>
+    </div>
+  </div>
+</div>
 
-        // DOM Elements
-        const grossEl = document.getElementById('gross-revenue');
-        const netEl = document.getElementById('net-revenue');
-        const invEl = document.getElementById('inventory-count');
-        const workerSelect = document.getElementById('worker-select');
-        const expenseGroup = document.getElementById('owner-expenses-group');
-        const jobForm = document.getElementById('job-form');
+<script>
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+const RATE = 400; // EGP per hour
 
-        // Initialize App
-        function init() {
-            document.getElementById('job-date').valueAsDate = new Date();
-            renderMitras();
-            updateDashboard();
-            renderLeaderboard();
-        }
+let state = {
+  isAdmin: true,
+  lbPeriod: 'week',
+  currentEditJobId: null,
+  selectedColor: 'av-blue',
+  jobs: [
+    { id: 1, worker: 'owner', date: '2025-06-10', area: 'Maadi', hours: 3, minutes: 0, quality: 5, expenses: [{name:'Sabun',amount:30},{name:'Transport',amount:20}] },
+    { id: 2, worker: 'mitra-1', date: '2025-06-11', area: 'Heliopolis', hours: 2, minutes: 30, quality: 4, expenses: [] },
+    { id: 3, worker: 'mitra-2', date: '2025-06-12', area: 'Zamalek', hours: 4, minutes: 0, quality: 5, expenses: [] },
+    { id: 4, worker: 'owner', date: '2025-06-13', area: 'Dokki', hours: 2, minutes: 0, quality: 4, expenses: [{name:'Sponge Silk',amount:15},{name:'Cairan Pembersih',amount:25}] },
+    { id: 5, worker: 'mitra-1', date: '2025-06-14', area: 'Nasr City', hours: 3, minutes: 30, quality: 5, expenses: [] },
+    { id: 6, worker: 'mitra-3', date: '2025-06-14', area: 'Mohandessin', hours: 2, minutes: 0, quality: 3, expenses: [] },
+    { id: 7, worker: 'owner', date: '2025-06-15', area: 'New Cairo', hours: 5, minutes: 0, quality: 5, expenses: [{name:'Transport',amount:50},{name:'Sabun',amount:30}] },
+    { id: 8, worker: 'mitra-2', date: '2025-06-16', area: 'Maadi', hours: 1, minutes: 30, quality: 4, expenses: [] },
+  ],
+  mitras: [
+    { id: 'mitra-1', name: 'Ahmad Yusuf', phone: '+62 812 3456 7890', color: 'av-blue', active: true },
+    { id: 'mitra-2', name: 'Sara Hassan', phone: '+62 813 8765 4321', color: 'av-green', active: false },
+    { id: 'mitra-3', name: 'Omar Khalil', phone: '+62 811 1111 2222', color: 'av-orange', active: true },
+  ],
+  inventory: [
+    { id: 'inv-1', name: 'Microfiber Cloth', icon: '🧤', current: 8, max: 20, decrement: 1 },
+    { id: 'inv-2', name: 'Sabun Pembersih', icon: '🧴', current: 5, max: 10, decrement: 0.5 },
+    { id: 'inv-3', name: 'Sponge Silk', icon: '🧽', current: 3, max: 15, decrement: 1 },
+    { id: 'inv-4', name: 'Cairan Kimia', icon: '🪣', current: 2, max: 5, decrement: 0.5 },
+    { id: 'inv-5', name: 'Sapu Kain', icon: '🧹', current: 12, max: 12, decrement: 0 },
+  ],
+  nextJobId: 9,
+  nextMitraId: 4,
+  nextInvId: 6,
+};
 
-        // Toggle form fields based on worker selection
-        function toggleOwnerFields() {
-            if (workerSelect.value === 'Owner') {
-                expenseGroup.style.display = 'block';
-            } else {
-                expenseGroup.style.display = 'none';
-                document.getElementById('job-expenses').value = '';
-            }
-        }
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+function calcWage(h, m) {
+  return (h + m / 60) * RATE;
+}
 
-        // Add Job Submission
-        jobForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const worker = workerSelect.value;
-            const hours = parseInt(document.getElementById('job-hours').value) || 0;
-            const minutes = parseInt(document.getElementById('job-minutes').value) || 0;
-            const rating = parseFloat(document.getElementById('job-rating').value) || 5;
-            const expenses = parseFloat(document.getElementById('job-expenses').value) || 0;
+function getWorkerName(id) {
+  if (id === 'owner') return 'Owner';
+  const m = state.mitras.find(x => x.id === id);
+  return m ? m.name : 'Unknown';
+}
 
-            // Logic: Total Wage = (Jam + Menit/60) * 400
-            const timeInHours = hours + (minutes / 60);
-            const totalWage = timeInHours * state.rate;
-            
-            let gross = totalWage;
-            let netToCompany = 0;
+function getWorkerColor(id) {
+  if (id === 'owner') return 'av-blue';
+  const m = state.mitras.find(x => x.id === id);
+  return m ? m.color : 'av-gray';
+}
 
-            if (worker === 'Owner') {
-                // Owner: 100% to company minus expenses
-                netToCompany = totalWage - expenses;
-            } else {
-                // Mitra: 20% to company, Mitra keeps 80% (expenses borne by Mitra, so we ignore it here)
-                netToCompany = totalWage * 0.20;
-            }
+function getInitials(name) {
+  return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
 
-            // Save job data
-            const job = {
-                worker,
-                timeInHours,
-                totalWage,
-                netToCompany,
-                rating
-            };
-            state.jobs.push(job);
+function formatEGP(n) {
+  return n.toLocaleString('en-EG', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' EGP';
+}
 
-            // Update Financials
-            state.grossRevenue += gross;
-            state.netRevenue += netToCompany;
+function starsHtml(q) {
+  let s = '';
+  for(let i=1;i<=5;i++) s += `<span style="color:${i<=q?'#ff9f0a':'#e2e2e5'}">★</span>`;
+  return s;
+}
 
-            // Reduce Inventory
-            if (state.inventory > 0) state.inventory -= 1;
+function getWeekDates(offset=0) {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1) + offset*7;
+  const monday = new Date(now.setDate(diff));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { start: monday, end: sunday };
+}
 
-            updateDashboard();
-            renderLeaderboard();
-            resetForm();
-            alert('Data Pekerjaan berhasil disimpan!');
-        });
+function jobInPeriod(job, period) {
+  const d = new Date(job.date);
+  const now = new Date();
+  if(period === 'week') {
+    const { start, end } = getWeekDates(0);
+    // Use last 7 days for demo
+    const ago7 = new Date(); ago7.setDate(ago7.getDate()-7);
+    return d >= ago7;
+  }
+  if(period === 'month') {
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }
+  return true;
+}
 
-        function resetForm() {
-            jobForm.reset();
-            document.getElementById('job-date').valueAsDate = new Date();
-            workerSelect.value = 'Owner';
-            toggleOwnerFields();
-        }
+function toast(msg, emoji='✅') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<span>${emoji}</span> ${msg}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
 
-        // Dashboard Rendering
-        function updateDashboard() {
-            // Format EGP currency
-            const formatter = new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP' });
-            grossEl.innerText = formatter.format(state.grossRevenue);
-            netEl.innerText = formatter.format(state.netRevenue);
-            invEl.innerText = state.inventory;
-        }
+// ══════════════════════════════════════════
+// NAV / PAGES
+// ══════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const tabs = ['dashboard','jobs','mitra','leaderboard','inventory'];
+  const idx = tabs.indexOf(id);
+  document.querySelectorAll('.nav-tab')[idx]?.classList.add('active');
+  renderAll();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 
-        // Mitra Management
-        function renderMitras() {
-            const tbody = document.querySelector('#mitra-table tbody');
-            tbody.innerHTML = '';
-            workerSelect.innerHTML = '<option value="Owner">Owner</option>';
+function toggleRole() {
+  state.isAdmin = !state.isAdmin;
+  const badge = document.getElementById('roleBadge');
+  if(state.isAdmin) {
+    badge.textContent = '👑 Admin';
+    badge.className = 'role-badge admin';
+    document.body.classList.remove('viewer-mode');
+  } else {
+    badge.textContent = '👁 Viewer';
+    badge.className = 'role-badge viewer';
+    document.body.classList.add('viewer-mode');
+  }
+  renderAll();
+  toast(state.isAdmin ? 'Mode Admin aktif' : 'Mode Viewer aktif', state.isAdmin ? '👑' : '👁');
+}
 
-            state.mitras.forEach(mitra => {
-                // Populate Dropdown
-                if (!mitra.isTawaquf) {
-                    workerSelect.innerHTML += `<option value="${mitra.name}">${mitra.name}</option>`;
-                }
+// ══════════════════════════════════════════
+// MODALS
+// ══════════════════════════════════════════
+function openModal(id) {
+  if(id === 'modalJob') populateWorkerDropdown();
+  document.getElementById(id).classList.add('open');
+}
 
-                // Populate Table
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${mitra.name}</td>
-                    <td>
-                        <span class="badge ${mitra.isTawaquf ? 'badge-tawaquf' : 'badge-active'}">
-                            ${mitra.isTawaquf ? 'Jeda/Tawaquf' : 'Aktif'}
-                        </span>
-                    </td>
-                    <td>
-                        <label class="toggle-switch">
-                            <input type="checkbox" ${mitra.isTawaquf ? 'checked' : ''} onchange="toggleTawaquf(${mitra.id})">
-                            <span class="slider"></span>
-                        </label>
-                    </td>
-                    <td>
-                        <button class="btn-danger" onclick="removeMitra(${mitra.id})">Remove</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-            toggleOwnerFields();
-        }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
 
-        function addMitra() {
-            const nameInput = document.getElementById('new-mitra-name');
-            const name = nameInput.value.trim();
-            if (!name) return alert('Nama mitra tidak boleh kosong!');
-            
-            const newId = state.mitras.length > 0 ? Math.max(...state.mitras.map(m => m.id)) + 1 : 1;
-            state.mitras.push({ id: newId, name: name, isTawaquf: false });
-            nameInput.value = '';
-            renderMitras();
-        }
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if(e.target === overlay) overlay.classList.remove('open');
+  });
+});
 
-        function removeMitra(id) {
-            if(confirm('Yakin ingin menghapus mitra ini?')) {
-                state.mitras = state.mitras.filter(m => m.id !== id);
-                renderMitras();
-                renderLeaderboard();
-            }
-        }
+// ══════════════════════════════════════════
+// WORKER DROPDOWN
+// ══════════════════════════════════════════
+function populateWorkerDropdown(selectId = 'jobWorker') {
+  const sel = document.getElementById(selectId);
+  sel.innerHTML = '<option value="">Pilih Pekerja...</option>';
+  sel.innerHTML += `<option value="owner">🔑 Owner</option>`;
+  state.mitras.forEach(m => {
+    sel.innerHTML += `<option value="${m.id}">${m.name}${m.active ? '' : ' (Tawaquf)'}</option>`;
+  });
+}
 
-        function toggleTawaquf(id) {
-            const mitra = state.mitras.find(m => m.id === id);
-            if(mitra) {
-                mitra.isTawaquf = !mitra.isTawaquf;
-                renderMitras();
-            }
-        }
+function onWorkerChange() {
+  const w = document.getElementById('jobWorker').value;
+  document.getElementById('ownerExpenses').style.display = w === 'owner' ? 'block' : 'none';
+  updateJobPreview();
+}
 
-        // Leaderboard Calculation
-        function renderLeaderboard() {
-            const tbody = document.querySelector('#leaderboard-table tbody');
-            tbody.innerHTML = '';
+function onEditWorkerChange() {
+  const w = document.getElementById('editJobWorker').value;
+  document.getElementById('editOwnerExpenses').style.display = w === 'owner' ? 'block' : 'none';
+}
 
-            let stats = {};
+// ══════════════════════════════════════════
+// STARS
+// ══════════════════════════════════════════
+let currentStars = 0;
+function setStars(val) {
+  currentStars = val;
+  document.getElementById('jobQuality').value = val;
+  document.querySelectorAll('#starRating .star').forEach(s => {
+    s.classList.toggle('active', parseInt(s.dataset.val) <= val);
+  });
+  updateJobPreview();
+}
 
-            // Aggregate data
-            state.jobs.forEach(job => {
-                if (!stats[job.worker]) {
-                    stats[job.worker] = { name: job.worker, totalHours: 0, totalRating: 0, jobCount: 0 };
-                }
-                stats[job.worker].totalHours += job.timeInHours;
-                stats[job.worker].totalRating += job.rating;
-                stats[job.worker].jobCount += 1;
-            });
+let editStars = 0;
+function setEditStars(val) {
+  editStars = val;
+  document.getElementById('editJobQuality').value = val;
+  document.querySelectorAll('#editStarRating .star').forEach(s => {
+    s.classList.toggle('active', parseInt(s.dataset.val) <= val);
+  });
+}
 
-            // Calculate Avg & convert to Array
-            let rankData = Object.values(stats).map(s => {
-                s.avgRating = (s.totalRating / s.jobCount).toFixed(1);
-                return s;
-            });
+// ══════════════════════════════════════════
+// JOB PREVIEW
+// ══════════════════════════════════════════
+function updateJobPreview() {
+  const h = parseFloat(document.getElementById('jobHours').value) || 0;
+  const m = parseFloat(document.getElementById('jobMinutes').value) || 0;
+  const w = document.getElementById('jobWorker').value;
+  if(!w || (h===0 && m===0)) {
+    document.getElementById('jobPreview').innerHTML = 'Isi form untuk melihat preview kalkulasi...';
+    return;
+  }
+  const gross = calcWage(h,m);
+  const isOwner = w === 'owner';
+  let toCompany = isOwner ? gross : gross * 0.2;
+  let toWorker = isOwner ? 0 : gross * 0.8;
+  
+  // Calc expenses
+  let totalExp = 0;
+  if(isOwner) {
+    document.querySelectorAll('#expenseList .expense-item').forEach(row => {
+      const inputs = row.querySelectorAll('input[type=number]');
+      if(inputs[0]) totalExp += parseFloat(inputs[0].value) || 0;
+    });
+  }
+  const netOwner = isOwner ? gross - totalExp : null;
 
-            // Sort: Total Hours DESC, then Avg Rating DESC
-            rankData.sort((a, b) => {
-                if (b.totalHours === a.totalHours) {
-                    return b.avgRating - a.avgRating;
-                }
-                return b.totalHours - a.totalHours;
-            });
+  let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">`;
+  html += `<div><span style="color:var(--color-ash)">Durasi:</span> <strong>${h}j ${m}m</strong></div>`;
+  html += `<div><span style="color:var(--color-ash)">Upah Kotor:</span> <strong style="color:var(--color-carbon)">${formatEGP(gross)}</strong></div>`;
+  if(isOwner) {
+    html += `<div><span style="color:var(--color-ash)">Total COGS:</span> <strong style="color:#ff3b30">${formatEGP(totalExp)}</strong></div>`;
+    html += `<div><span style="color:var(--color-ash)">Net Profit:</span> <strong style="color:#34c759">${formatEGP(netOwner)}</strong></div>`;
+  } else {
+    html += `<div><span style="color:var(--color-ash)">Ke Perusahaan (20%):</span> <strong style="color:var(--color-apple-blue)">${formatEGP(toCompany)}</strong></div>`;
+    html += `<div><span style="color:var(--color-ash)">Ke Mitra (80%):</span> <strong style="color:#34c759">${formatEGP(toWorker)}</strong></div>`;
+  }
+  html += `</div>`;
+  document.getElementById('jobPreview').innerHTML = html;
+}
 
-            if (rankData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--color-ash);">Belum ada data pekerjaan</td></tr>';
-                return;
-            }
+// ══════════════════════════════════════════
+// EXPENSES
+// ══════════════════════════════════════════
+function addExpense() {
+  const list = document.getElementById('expenseList');
+  const div = document.createElement('div');
+  div.className = 'expense-item';
+  div.innerHTML = `<input type="text" class="form-input" placeholder="Item" style="flex:1.5;">
+    <input type="number" class="form-input" placeholder="Biaya (EGP)" style="flex:1;" min="0" oninput="updateJobPreview()">
+    <button type="button" class="btn btn-ghost btn-sm" onclick="removeExpense(this)">✕</button>`;
+  list.appendChild(div);
+}
 
-            rankData.forEach((data, index) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="font-weight: 600; color: var(--color-apple-blue);">#${index + 1}</td>
-                    <td>${data.name}</td>
-                    <td>${data.totalHours.toFixed(1)} Jam</td>
-                    <td>&#11088; ${data.avgRating}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+function removeExpense(btn) {
+  btn.parentElement.remove();
+  updateJobPreview();
+}
 
-        // Run
-        window.onload = init;
-    </script>
+function addEditExpense() {
+  const list = document.getElementById('editExpenseList');
+  const div = document.createElement('div');
+  div.className = 'expense-item';
+  div.innerHTML = `<input type="text" class="form-input" placeholder="Item" style="flex:1.5;">
+    <input type="number" class="form-input" placeholder="Biaya (EGP)" style="flex:1;" min="0">
+    <button type="button" class="btn btn-ghost btn-sm" onclick="removeEditExpense(this)">✕</button>`;
+  list.appendChild(div);
+}
+
+function removeEditExpense(btn) { btn.parentElement.remove(); }
+
+// ══════════════════════════════════════════
+// SUBMIT JOB
+// ══════════════════════════════════════════
+function submitJob(e) {
+  e.preventDefault();
+  const worker = document.getElementById('jobWorker').value;
+  const quality = parseInt(document.getElementById('jobQuality').value);
+  if(quality === 0) { toast('Berikan quality score!','⭐'); return; }
+
+  const expenses = [];
+  if(worker === 'owner') {
+    document.querySelectorAll('#expenseList .expense-item').forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      const name = inputs[0].value.trim();
+      const amt = parseFloat(inputs[1].value) || 0;
+      if(name) expenses.push({name, amount: amt});
+    });
+  }
+
+  const job = {
+    id: state.nextJobId++,
+    worker,
+    date: document.getElementById('jobDate').value,
+    area: document.getElementById('jobArea').value,
+    hours: parseFloat(document.getElementById('jobHours').value) || 0,
+    minutes: parseFloat(document.getElementById('jobMinutes').value) || 0,
+    quality,
+    expenses
+  };
+  state.jobs.unshift(job);
+
+  // Decrement inventory
+  state.inventory.forEach(item => {
+    if(item.decrement > 0) {
+      item.current = Math.max(0, item.current - item.decrement);
+    }
+  });
+
+  closeModal('modalJob');
+  resetJobForm();
+  renderAll();
+  toast('Pekerjaan berhasil disimpan!','✅');
+}
+
+function resetJobForm() {
+  document.getElementById('jobWorker').value = '';
+  document.getElementById('jobDate').value = '';
+  document.getElementById('jobArea').value = '';
+  document.getElementById('jobHours').value = '2';
+  document.getElementById('jobMinutes').value = '0';
+  document.getElementById('jobQuality').value = '0';
+  currentStars = 0;
+  document.querySelectorAll('#starRating .star').forEach(s => s.classList.remove('active'));
+  document.getElementById('expenseList').innerHTML = `<div class="expense-item">
+    <input type="text" class="form-input" placeholder="Item (e.g., Sabun)" style="flex:1.5;">
+    <input type="number" class="form-input" placeholder="Biaya (EGP)" style="flex:1;" min="0">
+    <button type="button" class="btn btn-ghost btn-sm" onclick="removeExpense(this)">✕</button>
+  </div>`;
+  document.getElementById('ownerExpenses').style.display = 'none';
+  document.getElementById('jobPreview').innerHTML = 'Isi form untuk melihat preview kalkulasi...';
+}
+
+// ══════════════════════════════════════════
+// EDIT JOB
+// ══════════════════════════════════════════
+function openEditJob(id) {
+  const job = state.jobs.find(j=>j.id===id);
+  if(!job) return;
+  state.currentEditJobId = id;
+  populateWorkerDropdown('editJobWorker');
+  document.getElementById('editJobId').value = id;
+  document.getElementById('editJobWorker').value = job.worker;
+  document.getElementById('editJobDate').value = job.date;
+  document.getElementById('editJobArea').value = job.area;
+  document.getElementById('editJobHours').value = job.hours;
+  document.getElementById('editJobMinutes').value = job.minutes;
+  editStars = job.quality;
+  document.getElementById('editJobQuality').value = job.quality;
+  document.querySelectorAll('#editStarRating .star').forEach(s => {
+    s.classList.toggle('active', parseInt(s.dataset.val) <= job.quality);
+  });
+  const showExp = job.worker === 'owner';
+  document.getElementById('editOwnerExpenses').style.display = showExp ? 'block' : 'none';
+  const list = document.getElementById('editExpenseList');
+  list.innerHTML = '';
+  if(job.expenses) {
+    job.expenses.forEach(exp => {
+      const div = document.createElement('div');
+      div.className = 'expense-item';
+      div.innerHTML = `<input type="text" class="form-input" placeholder="Item" style="flex:1.5;" value="${exp.name}">
+        <input type="number" class="form-input" placeholder="Biaya (EGP)" style="flex:1;" min="0" value="${exp.amount}">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="removeEditExpense(this)">✕</button>`;
+      list.appendChild(div);
+    });
+  }
+  openModal('modalEditJob');
+}
+
+function submitEditJob(e) {
+  e.preventDefault();
+  const id = parseInt(document.getElementById('editJobId').value);
+  const idx = state.jobs.findIndex(j=>j.id===id);
+  if(idx===-1) return;
+  const worker = document.getElementById('editJobWorker').value;
+  const expenses = [];
+  if(worker === 'owner') {
+    document.querySelectorAll('#editExpenseList .expense-item').forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      const name = inputs[0].value.trim();
+      const amt = parseFloat(inputs[1].value) || 0;
+      if(name) expenses.push({name, amount: amt});
+    });
+  }
+  state.jobs[idx] = {
+    ...state.jobs[idx],
+    worker,
+    date: document.getElementById('editJobDate').value,
+    area: document.getElementById('editJobArea').value,
+    hours: parseFloat(document.getElementById('editJobHours').value) || 0,
+    minutes: parseFloat(document.getElementById('editJobMinutes').value) || 0,
+    quality: parseInt(document.getElementById('editJobQuality').value),
+    expenses
+  };
+  closeModal('modalEditJob');
+  renderAll();
+  toast('Pekerjaan berhasil diperbarui!','✎');
+}
+
+// ══════════════════════════════════════════
+// DELETE JOB
+// ══════════════════════════════════════════
+function confirmDeleteJob(id) {
+  const job = state.jobs.find(j=>j.id===id);
+  document.getElementById('confirmMsg').textContent = `Hapus pekerjaan di "${job.area}" pada ${job.date}? Tindakan ini tidak bisa dibatalkan.`;
+  document.getElementById('confirmBtn').onclick = () => {
+    state.jobs = state.jobs.filter(j=>j.id!==id);
+    closeModal('modalConfirm');
+    renderAll();
+    toast('Pekerjaan dihapus','🗑');
+  };
+  openModal('modalConfirm');
+}
+
+// ══════════════════════════════════════════
+// MITRA CRUD
+// ══════════════════════════════════════════
+function selectColor(color, el) {
+  document.querySelectorAll('#colorPicker div').forEach(d => d.style.borderColor = 'transparent');
+  el.style.borderColor = '#1d1d1f';
+  document.getElementById('mitraColor').value = color;
+  state.selectedColor = color;
+}
+
+function submitAddMitra(e) {
+  e.preventDefault();
+  const mitra = {
+    id: 'mitra-'+state.nextMitraId++,
+    name: document.getElementById('mitraName').value,
+    phone: document.getElementById('mitraPhone').value,
+    color: document.getElementById('mitraColor').value || 'av-blue',
+    active: true
+  };
+  state.mitras.push(mitra);
+  document.getElementById('mitraName').value = '';
+  document.getElementById('mitraPhone').value = '';
+  closeModal('modalAddMitra');
+  renderAll();
+  toast(`Mitra "${mitra.name}" berhasil ditambahkan!`,'🤝');
+}
+
+function openEditMitra(id) {
+  const m = state.mitras.find(x=>x.id===id);
+  if(!m) return;
+  document.getElementById('editMitraId').value = id;
+  document.getElementById('editMitraName').value = m.name;
+  document.getElementById('editMitraPhone').value = m.phone;
+  openModal('modalEditMitra');
+}
+
+function submitEditMitra(e) {
+  e.preventDefault();
+  const id = document.getElementById('editMitraId').value;
+  const m = state.mitras.find(x=>x.id===id);
+  if(!m) return;
+  m.name = document.getElementById('editMitraName').value;
+  m.phone = document.getElementById('editMitraPhone').value;
+  closeModal('modalEditMitra');
+  renderAll();
+  toast('Profil mitra diperbarui!','✎');
+}
+
+function toggleTawaquf(id) {
+  const m = state.mitras.find(x=>x.id===id);
+  if(!m) return;
+  m.active = !m.active;
+  renderAll();
+  toast(`${m.name}: ${m.active ? 'Aktif' : 'Tawaquf'}`, m.active ? '✅' : '⏸');
+}
+
+function confirmRemoveMitra(id) {
+  const m = state.mitras.find(x=>x.id===id);
+  document.getElementById('confirmMsg').textContent = `Hapus mitra "${m.name}"? Semua data pekerjaan mereka tetap tersimpan.`;
+  document.getElementById('confirmBtn').onclick = () => {
+    state.mitras = state.mitras.filter(x=>x.id!==id);
+    closeModal('modalConfirm');
+    renderAll();
+    toast(`Mitra "${m.name}" dihapus`,'🗑');
+  };
+  openModal('modalConfirm');
+}
+
+// ══════════════════════════════════════════
+// INVENTORY
+// ══════════════════════════════════════════
+function submitAddInv(e) {
+  e.preventDefault();
+  const item = {
+    id: 'inv-'+state.nextInvId++,
+    name: document.getElementById('invName').value,
+    icon: document.getElementById('invIcon').value || '📦',
+    current: parseFloat(document.getElementById('invCurrent').value) || 0,
+    max: parseFloat(document.getElementById('invMax').value) || 20,
+    decrement: parseFloat(document.getElementById('invDecrement').value) || 1
+  };
+  state.inventory.push(item);
+  closeModal('modalAddInv');
+  renderAll();
+  toast(`Item "${item.name}" ditambahkan!`,'📦');
+}
+
+function adjustInv(id, delta) {
+  const item = state.inventory.find(x=>x.id===id);
+  if(!item) return;
+  item.current = Math.max(0, Math.min(item.max, item.current + delta));
+  renderInventory();
+}
+
+function removeInv(id) {
+  const item = state.inventory.find(x=>x.id===id);
+  document.getElementById('confirmMsg').textContent = `Hapus item "${item.name}" dari inventori?`;
+  document.getElementById('confirmBtn').onclick = () => {
+    state.inventory = state.inventory.filter(x=>x.id!==id);
+    closeModal('modalConfirm');
+    renderInventory();
+    toast('Item dihapus','🗑');
+  };
+  openModal('modalConfirm');
+}
+
+// ══════════════════════════════════════════
+// LEADERBOARD PERIOD
+// ══════════════════════════════════════════
+function setLbPeriod(period, btn) {
+  state.lbPeriod = period;
+  document.querySelectorAll('.inner-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  renderLeaderboard();
+}
+
+// ══════════════════════════════════════════
+// RENDER FUNCTIONS
+// ══════════════════════════════════════════
+function renderAll() {
+  renderStats();
+  renderChart();
+  renderRecentJobs();
+  renderOwnerFinancials();
+  renderJobsTable();
+  renderMitraGrid();
+  renderLeaderboard();
+  renderInventory();
+}
+
+// ── STATS ──
+function renderStats() {
+  let totalGross = 0, totalCompany = 0, totalOwnerNet = 0, totalJobs = state.jobs.length;
+  let qualSum = 0, qualCount = 0;
+
+  state.jobs.forEach(job => {
+    const gross = calcWage(job.hours, job.minutes);
+    totalGross += gross;
+    if(job.worker === 'owner') {
+      const exp = (job.expenses || []).reduce((s,e)=>s+e.amount, 0);
+      totalOwnerNet += gross - exp;
+      totalCompany += gross - exp;
+    } else {
+      totalCompany += gross * 0.2;
+    }
+    if(job.quality > 0) { qualSum += job.quality; qualCount++; }
+  });
+
+  const avgQ = qualCount > 0 ? (qualSum/qualCount).toFixed(1) : '–';
+
+  const stats = [
+    { label: 'Total Pendapatan Kotor', value: formatEGP(totalGross), sub: `${totalJobs} pekerjaan total`, icon: '💰', color: '#2997ff' },
+    { label: 'Pendapatan Perusahaan', value: formatEGP(totalCompany), sub: 'Net profit + 20% mitra', icon: '🏢', color: '#34c759' },
+    { label: 'Net Profit Owner', value: formatEGP(totalOwnerNet), sub: 'Setelah dikurangi COGS', icon: '📊', color: '#ff9f0a' },
+    { label: 'Rata-rata Quality', value: `${avgQ} ★`, sub: `dari ${qualCount} rating`, icon: '⭐', color: '#ff3b30' },
+  ];
+
+  const grid = document.getElementById('statsGrid');
+  grid.innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="stat-icon">${s.icon}</div>
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-value" style="color:${s.color}">${s.value}</div>
+      <div class="stat-sub">${s.sub}</div>
+    </div>
+  `).join('');
+}
+
+// ── CHART ──
+let selectedWeek = 0;
+function renderChart() {
+  // Show last 7 days
+  const days = [];
+  for(let i=6; i>=0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const key = d.toISOString().slice(0,10);
+    const label = d.toLocaleDateString('id-ID',{weekday:'short'}).slice(0,3);
+    let ownerWage = 0, mitraWage = 0;
+    state.jobs.filter(j=>j.date===key).forEach(j=>{
+      const w = calcWage(j.hours, j.minutes);
+      if(j.worker==='owner') ownerWage += w;
+      else mitraWage += w;
+    });
+    days.push({ label, ownerWage, mitraWage });
+  }
+
+  const maxVal = Math.max(...days.map(d=>d.ownerWage+d.mitraWage), 1);
+  const barsEl = document.getElementById('chartBars');
+  barsEl.innerHTML = days.map(d => {
+    const oh = Math.max(4, (d.ownerWage/maxVal)*140);
+    const mh = Math.max(4, (d.mitraWage/maxVal)*140);
+    const showO = d.ownerWage > 0;
+    const showM = d.mitraWage > 0;
+    return `<div class="chart-bar-group">
+      <div class="chart-bar-inner">
+        ${showO ? `<div class="chart-bar owner" style="height:${oh}px" title="Owner: ${formatEGP(d.ownerWage)}"></div>` : '<div style="flex:1"></div>'}
+        ${showM ? `<div class="chart-bar mitra" style="height:${mh}px" title="Mitra: ${formatEGP(d.mitraWage)}"></div>` : '<div style="flex:1"></div>'}
+      </div>
+      <div class="chart-label">${d.label}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── RECENT JOBS ──
+function renderRecentJobs() {
+  const el = document.getElementById('recentJobs');
+  const recent = [...state.jobs].slice(0,5);
+  if(!recent.length) { el.innerHTML = '<div class="empty-state"><p>Belum ada pekerjaan</p></div>'; return; }
+  el.innerHTML = recent.map(job => {
+    const gross = calcWage(job.hours, job.minutes);
+    const name = getWorkerName(job.worker);
+    const color = getWorkerColor(job.worker);
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--color-pebble);">
+      <div class="mitra-avatar ${color}" style="width:36px;height:36px;font-size:13px;">${getInitials(name)}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:var(--color-carbon)">${name}</div>
+        <div style="font-size:11px;color:var(--color-ash)">${job.area} · ${job.date}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:13px;font-weight:700;color:var(--color-carbon)">${formatEGP(gross)}</div>
+        <div style="font-size:11px;color:#ff9f0a">${'★'.repeat(job.quality)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── OWNER FINANCIALS ──
+function renderOwnerFinancials() {
+  const ownerJobs = state.jobs.filter(j=>j.worker==='owner');
+  if(!ownerJobs.length) {
+    document.getElementById('ownerFinancials').innerHTML = '<p style="color:var(--color-ash);font-size:14px;">Belum ada data pekerjaan Owner.</p>';
+    return;
+  }
+  let rows = '';
+  let totalGross = 0, totalCOGS = 0, totalNet = 0;
+  ownerJobs.forEach(job => {
+    const gross = calcWage(job.hours, job.minutes);
+    const cogs = (job.expenses||[]).reduce((s,e)=>s+e.amount,0);
+    const net = gross - cogs;
+    totalGross += gross; totalCOGS += cogs; totalNet += net;
+    rows += `<tr>
+      <td>${job.date}</td>
+      <td>${job.area}</td>
+      <td>${job.hours}j ${job.minutes}m</td>
+      <td>${formatEGP(gross)}</td>
+      <td style="color:#ff3b30">${formatEGP(cogs)}</td>
+      <td style="color:#34c759;font-weight:700">${formatEGP(net)}</td>
+      <td>${starsHtml(job.quality)}</td>
+    </tr>`;
+  });
+  document.getElementById('ownerFinancials').innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tanggal</th><th>Daerah</th><th>Durasi</th><th>Upah Kotor</th><th>Total COGS</th><th>Net Profit</th><th>Quality</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr style="background:rgba(245,245,247,0.9);font-weight:700;">
+            <td colspan="3" style="font-weight:700;font-size:13px;">TOTAL</td>
+            <td style="font-weight:700">${formatEGP(totalGross)}</td>
+            <td style="color:#ff3b30;font-weight:700">${formatEGP(totalCOGS)}</td>
+            <td style="color:#34c759;font-weight:700">${formatEGP(totalNet)}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+}
+
+// ── JOBS TABLE ──
+function renderJobsTable() {
+  const search = (document.getElementById('jobSearch')?.value || '').toLowerCase();
+  const jobs = state.jobs.filter(j => {
+    const name = getWorkerName(j.worker).toLowerCase();
+    return !search || name.includes(search) || j.area.toLowerCase().includes(search) || j.date.includes(search);
+  });
+
+  const tbody = document.getElementById('jobsTableBody');
+  const empty = document.getElementById('jobsEmpty');
+  if(!jobs.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = jobs.map((job, i) => {
+    const gross = calcWage(job.hours, job.minutes);
+    const isOwner = job.worker === 'owner';
+    const toCompany = isOwner ? gross - (job.expenses||[]).reduce((s,e)=>s+e.amount,0) : gross * 0.2;
+    const name = getWorkerName(job.worker);
+    const color = getWorkerColor(job.worker);
+    return `<tr>
+      <td style="font-size:11px;color:var(--color-mist)">#${job.id}</td>
+      <td style="font-size:12px;color:var(--color-ash)">${job.date}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="mitra-avatar ${color}" style="width:30px;height:30px;font-size:11px;">${getInitials(name)}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600">${name}</div>
+            <div style="font-size:10px;color:var(--color-ash)">${isOwner ? '🔑 Owner' : '🤝 Mitra'}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="chip">${job.area}</span></td>
+      <td style="font-size:13px;font-weight:600">${job.hours}j ${job.minutes}m</td>
+      <td style="font-weight:700;color:var(--color-carbon)">${formatEGP(gross)}</td>
+      <td style="font-weight:700;color:#34c759">${formatEGP(toCompany)}</td>
+      <td>${starsHtml(job.quality)}</td>
+      <td class="admin-only">
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="openEditJob(${job.id})">✎</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDeleteJob(${job.id})">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── MITRA GRID ──
+function renderMitraGrid() {
+  const grid = document.getElementById('mitraGrid');
+  if(!state.mitras.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="icon">🤝</div><p>Belum ada mitra. Tambahkan mitra pertama!</p></div>';
+    return;
+  }
+  grid.innerHTML = state.mitras.map(m => {
+    const jobs = state.jobs.filter(j=>j.worker===m.id);
+    const totalH = jobs.reduce((s,j)=>s+(j.hours+j.minutes/60),0);
+    const grossTotal = jobs.reduce((s,j)=>s+calcWage(j.hours,j.minutes),0);
+    const mitraShare = grossTotal * 0.8;
+    const avgQ = jobs.length ? (jobs.reduce((s,j)=>s+j.quality,0)/jobs.length).toFixed(1) : '–';
+    return `<div class="mitra-card ${m.active ? '' : 'tawaquf'}">
+      <div class="mitra-header">
+        <div class="mitra-avatar ${m.color}">${getInitials(m.name)}</div>
+        <div style="flex:1">
+          <div class="mitra-name">${m.name}</div>
+          <div class="mitra-role">${m.phone || 'No phone'}</div>
+        </div>
+        <span class="badge ${m.active ? 'badge-green' : 'badge-orange'}">${m.active ? 'Aktif' : 'Tawaquf'}</span>
+      </div>
+      <div class="mitra-stats">
+        <div class="mitra-stat">
+          <div class="mitra-stat-val">${totalH.toFixed(1)}j</div>
+          <div class="mitra-stat-lbl">Total Jam</div>
+        </div>
+        <div class="mitra-stat">
+          <div class="mitra-stat-val">${avgQ} ★</div>
+          <div class="mitra-stat-lbl">Avg Quality</div>
+        </div>
+        <div class="mitra-stat">
+          <div class="mitra-stat-val">${jobs.length}</div>
+          <div class="mitra-stat-lbl">Total Job</div>
+        </div>
+        <div class="mitra-stat">
+          <div class="mitra-stat-val" style="font-size:13px">${formatEGP(mitraShare)}</div>
+          <div class="mitra-stat-lbl">Pendapatan</div>
+        </div>
+      </div>
+      <div class="mitra-actions admin-only">
+        <div class="toggle-wrap">
+          <label class="toggle">
+            <input type="checkbox" ${m.active ? 'checked' : ''} onchange="toggleTawaquf('${m.id}')">
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+          <span style="font-size:11px;color:var(--color-ash)">${m.active ? 'Aktif' : 'Tawaquf'}</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="openEditMitra('${m.id}')">✎ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmRemoveMitra('${m.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── LEADERBOARD ──
+function renderLeaderboard() {
+  const period = state.lbPeriod;
+  const workers = [
+    { id: 'owner', name: 'Owner', color: 'av-blue', isOwner: true },
+    ...state.mitras.map(m => ({...m, isOwner: false}))
+  ];
+
+  const scores = workers.map(w => {
+    const jobs = state.jobs.filter(j => j.worker === w.id && jobInPeriod(j, period));
+    const hours = jobs.reduce((s,j)=>s+(j.hours+j.minutes/60),0);
+    const avgQ = jobs.length ? jobs.reduce((s,j)=>s+j.quality,0)/jobs.length : 0;
+    const gross = jobs.reduce((s,j)=>s+calcWage(j.hours,j.minutes),0);
+    // Score = (hours * 0.6 + avgQ * 0.4) — normalized
+    const compositeScore = hours * 0.6 + avgQ * 2;
+    return { ...w, jobs: jobs.length, hours, avgQ, gross, compositeScore };
+  }).sort((a,b) => b.compositeScore - a.compositeScore);
+
+  const rankIcons = ['🥇','🥈','🥉'];
+  const rankClasses = ['gold','silver','bronze'];
+
+  const list = document.getElementById('leaderboardList');
+  list.innerHTML = scores.map((s,i) => `
+    <div class="lb-row">
+      <div class="lb-rank ${rankClasses[i]||''}">${i<3 ? rankIcons[i] : i+1}</div>
+      <div class="lb-avatar ${s.color}">${getInitials(s.name)}</div>
+      <div class="lb-info">
+        <div class="lb-name">${s.name} ${s.isOwner ? '👑' : ''}</div>
+        <div class="lb-sub">${s.jobs} job · ${s.hours.toFixed(1)}j · <span class="lb-stars">${'★'.repeat(Math.round(s.avgQ))}</span> ${s.avgQ.toFixed(1)}</div>
+      </div>
+      <div class="lb-score">
+        <div class="lb-score-val">${s.compositeScore.toFixed(1)}</div>
+        <div class="lb-score-label">Score</div>
+      </div>
+    </div>
+  `).join('') || '<div class="empty-state"><p>Belum ada data periode ini.</p></div>';
+
+  // Stats
+  const totalJobs = scores.reduce((s,w)=>s+w.jobs,0);
+  const totalHours = scores.reduce((s,w)=>s+w.hours,0);
+  const totalGross = scores.reduce((s,w)=>s+w.gross,0);
+  const topWorker = scores[0];
+  document.getElementById('lbStats').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="stat-card" style="padding:16px;">
+        <div class="stat-label">Total Job Periode</div>
+        <div class="stat-value">${totalJobs}</div>
+      </div>
+      <div class="stat-card" style="padding:16px;">
+        <div class="stat-label">Total Jam Kerja</div>
+        <div class="stat-value">${totalHours.toFixed(1)}j</div>
+      </div>
+      <div class="stat-card" style="padding:16px;">
+        <div class="stat-label">Total Pendapatan</div>
+        <div class="stat-value" style="font-size:20px">${formatEGP(totalGross)}</div>
+      </div>
+      ${topWorker && topWorker.jobs > 0 ? `<div class="stat-card" style="padding:16px;border-left:3px solid #ff9f0a;">
+        <div class="stat-label">🏆 Top Performer</div>
+        <div class="stat-value" style="font-size:18px">${topWorker.name}</div>
+        <div class="stat-sub">${topWorker.hours.toFixed(1)}j · ⭐ ${topWorker.avgQ.toFixed(1)}</div>
+      </div>` : ''}
+    </div>`;
+}
+
+// ── INVENTORY ──
+function renderInventory() {
+  const grid = document.getElementById('inventoryGrid');
+  grid.innerHTML = state.inventory.map(item => {
+    const pct = item.max > 0 ? (item.current/item.max)*100 : 0;
+    const color = pct > 60 ? '#34c759' : pct > 30 ? '#ff9f0a' : '#ff3b30';
+    const warn = pct <= 25 ? `<div style="font-size:10px;color:#ff3b30;margin-top:4px;font-weight:600;">⚠ Segera Restock!</div>` : '';
+    return `<div class="inv-card">
+      <div class="inv-icon">${item.icon}</div>
+      <div class="inv-name">${item.name}</div>
+      <div class="inv-bar-wrap">
+        <div class="inv-bar" style="width:${pct}%;background:${color}"></div>
+      </div>
+      <div class="inv-count">${item.current} / ${item.max}</div>
+      ${warn}
+      <div class="inv-ctrl">
+        <button class="inv-btn admin-only" onclick="adjustInv('${item.id}',-1)">−</button>
+        <span class="inv-val">${Math.round(item.current)}</span>
+        <button class="inv-btn admin-only" onclick="adjustInv('${item.id}',1)">+</button>
+      </div>
+      <button class="btn btn-danger btn-sm admin-only" onclick="removeInv('${item.id}')" style="margin-top:10px;width:100%;">Hapus</button>
+    </div>`;
+  }).join('') || '<div class="empty-state"><div class="icon">📦</div><p>Inventori kosong.</p></div>';
+}
+
+// ══════════════════════════════════════════
+// PARALLAX
+// ══════════════════════════════════════════
+window.addEventListener('scroll', () => {
+  const layers = document.querySelectorAll('.parallax-layer');
+  const scrollY = window.scrollY;
+  layers.forEach(layer => {
+    const speed = parseFloat(layer.dataset.speed) || 0.2;
+    layer.style.transform = `translateY(${scrollY * speed}px)`;
+  });
+});
+
+// ══════════════════════════════════════════
+// LIVE PREVIEW on input change
+// ══════════════════════════════════════════
+['jobHours','jobMinutes'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', updateJobPreview);
+});
+
+// ══════════════════════════════════════════
+// SET DEFAULT DATE
+// ══════════════════════════════════════════
+document.getElementById('jobDate').value = new Date().toISOString().slice(0,10);
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+renderAll();
+</script>
 </body>
 </html>
