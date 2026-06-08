@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuqtos Deep Cleaning - OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(217,100%,90%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 100%, hsla(210,100%,85%,1) 0, transparent 50%);
+            background-attachment: fixed;
+            color: #1e293b;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        /* Glassmorphism Effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* 3D Blue Props styling */
+        .blue-prop {
+            color: #3b82f6;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col p-4 md:p-8">
+
+    <!-- Navbar & Role Switcher -->
+    <nav class="glass rounded-2xl p-4 mb-6 flex justify-between items-center z-10 sticky top-4">
+        <div class="flex items-center gap-2">
+            <span class="text-3xl">💧</span>
+            <h1 class="text-xl md:text-2xl font-bold tracking-tight">NUQTOS<span class="text-blue-500">.</span></h1>
+        </div>
+        <div class="flex gap-4 items-center">
+            <select id="roleSelector" class="bg-white/50 border border-gray-200 text-sm rounded-lg px-3 py-2 outline-none" onchange="switchRole()">
+                <option value="admin">Login: Owner (Admin)</option>
+                <option value="viewer">Login: Mitra (Viewer)</option>
+            </select>
+        </div>
+    </nav>
+
+    <div class="flex flex-col md:flex-row gap-6">
+        <!-- Sidebar Navigation -->
+        <aside class="w-full md:w-64 flex flex-col gap-3 admin-only">
+            <button onclick="openTab('dashboard')" class="glass hover:bg-blue-50 transition p-4 rounded-xl text-left font-semibold flex items-center gap-3">
+                <span class="blue-prop">📊</span> Dashboard
+            </button>
+            <button onclick="openTab('inputJob')" class="glass hover:bg-blue-50 transition p-4 rounded-xl text-left font-semibold flex items-center gap-3">
+                <span class="blue-prop">🧽</span> Input Pekerjaan
+            </button>
+            <button onclick="openTab('mitraManager')" class="glass hover:bg-blue-50 transition p-4 rounded-xl text-left font-semibold flex items-center gap-3">
+                <span class="blue-prop">👥</span> Kelola Mitra
+            </button>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1">
+            
+            <!-- TAB: DASHBOARD -->
+            <section id="dashboard" class="tab-content active space-y-6">
+                <!-- Financial Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass p-6 rounded-2xl border-t-4 border-blue-500">
+                        <p class="text-sm text-gray-500 font-semibold mb-1">Total Omset Kotor</p>
+                        <h2 class="text-3xl font-bold" id="totalOmset">0 <span class="text-lg">EGP</span></h2>
+                    </div>
+                    <div class="glass p-6 rounded-2xl border-t-4 border-green-500">
+                        <p class="text-sm text-gray-500 font-semibold mb-1">Net Profit Perusahaan</p>
+                        <h2 class="text-3xl font-bold text-green-600" id="netProfit">0 <span class="text-lg">EGP</span></h2>
+                        <p class="text-xs text-gray-400 mt-2">Owner (100%) + Potongan Mitra (20%) - COGS</p>
+                    </div>
+                    <div class="glass p-6 rounded-2xl border-t-4 border-orange-400 relative overflow-hidden">
+                        <p class="text-sm text-gray-500 font-semibold mb-1">Microfiber Lifespan</p>
+                        <h2 class="text-3xl font-bold text-orange-500" id="microfiberCount">10 <span class="text-lg">Sisa Pakai</span></h2>
+                        <button onclick="resetMicrofiber()" class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded mt-2 admin-only">Restock Alat</button>
+                        <span class="absolute -bottom-4 -right-2 text-6xl opacity-20">🧹</span>
+                    </div>
+                </div>
+
+                <!-- Leaderboard & Analytics -->
+                <div class="glass p-6 rounded-2xl">
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2"><span class="blue-prop">🏆</span> Leaderboard Mitra</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-200 text-sm text-gray-500">
+                                    <th class="py-3 px-4">Rank</th>
+                                    <th class="py-3 px-4">Nama Mitra</th>
+                                    <th class="py-3 px-4">Status</th>
+                                    <th class="py-3 px-4">Total Jam</th>
+                                    <th class="py-3 px-4">Avg Quality (⭐)</th>
+                                    <th class="py-3 px-4">Take Home Pay (80%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboardTable">
+                                <!-- Data injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: INPUT PEKERJAAN (Admin Only) -->
+            <section id="inputJob" class="tab-content glass p-6 rounded-2xl">
+                <h3 class="text-xl font-bold mb-6 flex items-center gap-2"><span class="blue-prop">✨</span> Catat Sesi Kebersihan</h3>
+                <form id="jobForm" onsubmit="submitJob(event)" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Pekerja</label>
+                            <select id="jobWorker" class="w-full p-3 rounded-xl border border-gray-200 bg-white/50 outline-none" required onchange="toggleOwnerExpenses()">
+                                <!-- Injected via JS -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Tanggal</label>
+                            <input type="date" id="jobDate" class="w-full p-3 rounded-xl border border-gray-200 bg-white/50 outline-none" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Daerah Customer</label>
+                            <input type="text" id="jobLocation" placeholder="Contoh: Darasah / Sabi" class="w-full p-3 rounded-xl border border-gray-200 bg-white/50 outline-none" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Quality Score (1-5)</label>
+                            <input type="number" id="jobRating" min="1" max="5" value="5" class="w-full p-3 rounded-xl border border-gray-200 bg-white/50 outline-none" required>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="w-1/2">
+                                <label class="block text-sm font-semibold mb-1">Jam</label>
+                                <input type="number" id="jobHours" min="0" value="0" class="w-full p-3 rounded-xl border border-gray-200 bg-white/50 outline-none" required>
+                            </div>
+                            <div class="w-1/2">
+                                <label class="block text-sm font-semibold mb-1">Menit</label>
+                                <input type="number" id="jobMinutes" min="0" max="59" value="0" class="w-full p-3 rounded-xl border border-gray-200 bg-white/50 outline-none" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Owner Only Expenses -->
+                    <div id="ownerExpenses" class="mt-6 p-4 bg-red-50/50 border border-red-100 rounded-xl hidden">
+                        <h4 class="font-bold text-red-800 mb-2">Input Pengeluaran Operasional (Khusus Owner)</h4>
+                        <p class="text-xs text-red-600 mb-3">Masukkan bahan terpakai untuk menghitung net profit.</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <input type="number" id="expSabun" placeholder="Sabun (EGP)" class="p-2 rounded border border-gray-200 text-sm">
+                            <input type="number" id="expSponge" placeholder="Sponge (EGP)" class="p-2 rounded border border-gray-200 text-sm">
+                            <input type="number" id="expMicro" placeholder="Microfiber (EGP)" class="p-2 rounded border border-gray-200 text-sm">
+                            <input type="number" id="expTrans" placeholder="Transport (EGP)" class="p-2 rounded border border-gray-200 text-sm">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition transform hover:-translate-y-1">Simpan Data Pekerjaan</button>
+                </form>
+            </section>
+
+            <!-- TAB: KELOLA MITRA (Admin Only) -->
+            <section id="mitraManager" class="tab-content glass p-6 rounded-2xl">
+                <h3 class="text-xl font-bold mb-6 flex items-center gap-2"><span class="blue-prop">🤝</span> Manajemen Mitra</h3>
+                <div class="flex gap-4 mb-6">
+                    <input type="text" id="newMitraName" placeholder="Nama Mitra Baru" class="flex-1 p-3 rounded-xl border border-gray-200 bg-white/50 outline-none">
+                    <button onclick="addMitra()" class="bg-gray-800 text-white px-6 py-3 rounded-xl font-semibold hover:bg-black transition">Tambah</button>
+                </div>
+                <div class="overflow-hidden rounded-xl border border-gray-200">
+                    <table class="w-full text-left bg-white/30">
+                        <thead>
+                            <tr class="bg-gray-100/50 text-sm">
+                                <th class="p-3">Nama Mitra</th>
+                                <th class="p-3 text-center">Status Tawaquf</th>
+                                <th class="p-3 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mitraListTable">
+                            <!-- Injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+        </main>
+    </div>
+
+    <!-- MAIN JAVASCRIPT LOGIC -->
+    <script>
+        // ==========================================
+        // 1. SUPABASE CONFIGURATION (SIAP PAKAI)
+        // ==========================================
+        /*
+        const SUPABASE_URL = "URL_SUPABASE_KAMU_DISINI";
+        const SUPABASE_ANON_KEY = "KUNCI_ANON_KAMU_DISINI";
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        */
+
+        // ==========================================
+        // 2. STATE MANAGEMENT (LOCAL STORAGE DEFAULT)
+        // ==========================================
+        const HOURLY_RATE = 400; // EGP
+        const COMPANY_CUT = 0.20; // 20%
+        const MITRA_CUT = 0.80; // 80%
+
+        let appData = JSON.parse(localStorage.getItem('nuqtosData')) || {
+            mitras: [
+                { id: 'm1', name: 'Tamin', isTawaquf: false },
+                { id: 'm2', name: 'Sabi', isTawaquf: false }
+            ],
+            jobs: [],
+            microfiberLifespan: 10
+        };
+
+        function saveData() {
+            localStorage.setItem('nuqtosData', JSON.stringify(appData));
+            updateUI();
+        }
+
+        // ==========================================
+        // 3. CORE FUNCTIONS & LOGIC
+        // ==========================================
+        
+        // Navigation & UI
+        function openTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function switchRole() {
+            const role = document.getElementById('roleSelector').value;
+            const adminElements = document.querySelectorAll('.admin-only');
+            if (role === 'viewer') {
+                adminElements.forEach(el => el.style.display = 'none');
+                openTab('dashboard'); // Force view to dashboard
+            } else {
+                adminElements.forEach(el => el.style.display = '');
+            }
+        }
+
+        function toggleOwnerExpenses() {
+            const worker = document.getElementById('jobWorker').value;
+            const expenseBox = document.getElementById('ownerExpenses');
+            if (worker === 'owner') {
+                expenseBox.classList.remove('hidden');
+            } else {
+                expenseBox.classList.add('hidden');
+            }
+        }
+
+        // Mitra Management
+        function addMitra() {
+            const nameInput = document.getElementById('newMitraName');
+            const name = nameInput.value.trim();
+            if (name) {
+                appData.mitras.push({ id: 'm' + Date.now(), name: name, isTawaquf: false });
+                nameInput.value = '';
+                saveData();
+            }
+        }
+
+        function toggleTawaquf(id) {
+            const mitra = appData.mitras.find(m => m.id === id);
+            if (mitra) {
+                mitra.isTawaquf = !mitra.isTawaquf;
+                saveData();
+            }
+        }
+
+        function deleteMitra(id) {
+            if(confirm("Yakin hapus mitra ini?")) {
+                appData.mitras = appData.mitras.filter(m => m.id !== id);
+                saveData();
+            }
+        }
+
+        // Job Processing
+        function submitJob(e) {
+            e.preventDefault();
+            const workerId = document.getElementById('jobWorker').value;
+            const h = parseInt(document.getElementById('jobHours').value) || 0;
+            const m = parseInt(document.getElementById('jobMinutes').value) || 0;
+            
+            // Core Formula Calculation
+            const durationInHours = h + (m / 60);
+            const totalWage = durationInHours * HOURLY_RATE;
+
+            let job = {
+                id: Date.now(),
+                workerId,
+                date: document.getElementById('jobDate').value,
+                location: document.getElementById('jobLocation').value,
+                rating: parseInt(document.getElementById('jobRating').value),
+                hours: h,
+                minutes: m,
+                grossWage: totalWage,
+                expenses: 0
+            };
+
+            // Owner COGS Logic
+            if (workerId === 'owner') {
+                const e1 = parseFloat(document.getElementById('expSabun').value) || 0;
+                const e2 = parseFloat(document.getElementById('expSponge').value) || 0;
+                const e3 = parseFloat(document.getElementById('expMicro').value) || 0;
+                const e4 = parseFloat(document.getElementById('expTrans').value) || 0;
+                job.expenses = e1 + e2 + e3 + e4;
+            }
+
+            appData.jobs.push(job);
+            
+            // Depreciate Asset
+            if(appData.microfiberLifespan > 0) appData.microfiberLifespan--;
+
+            saveData();
+            e.target.reset();
+            alert("Data pekerjaan berhasil disimpan!");
+            toggleOwnerExpenses();
+        }
+
+        function resetMicrofiber() {
+            appData.microfiberLifespan = 10;
+            saveData();
+        }
+
+        // ==========================================
+        // 4. RENDER ENGINE (UI UPDATES)
+        // ==========================================
+        function updateUI() {
+            // Update Select Dropdown
+            const select = document.getElementById('jobWorker');
+            select.innerHTML = `<option value="owner">Saya Sendiri (Owner)</option>`;
+            appData.mitras.forEach(m => {
+                select.innerHTML += `<option value="${m.id}">${m.name}</option>`;
+            });
+
+            // Update Mitra Table
+            const mTable = document.getElementById('mitraListTable');
+            mTable.innerHTML = '';
+            appData.mitras.forEach(m => {
+                mTable.innerHTML += `
+                    <tr class="border-b border-gray-100">
+                        <td class="p-3 font-semibold">${m.name}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="toggleTawaquf('${m.id}')" class="px-3 py-1 rounded text-xs font-bold ${m.isTawaquf ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}">
+                                ${m.isTawaquf ? 'Sedang Tawaquf' : 'Aktif'}
+                            </button>
+                        </td>
+                        <td class="p-3 text-right">
+                            <button onclick="deleteMitra('${m.id}')" class="text-red-500 hover:text-red-700 text-sm">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // Calculate Dashboards
+            let totalGross = 0;
+            let totalNet = 0;
+            let mitraStats = {};
+
+            appData.mitras.forEach(m => {
+                mitraStats[m.id] = { name: m.name, status: m.isTawaquf, totalHours: 0, totalWage: 0, ratingSum: 0, jobCount: 0 };
+            });
+
+            appData.jobs.forEach(j => {
+                totalGross += j.grossWage;
+                
+                if (j.workerId === 'owner') {
+                    totalNet += (j.grossWage - j.expenses);
+                } else {
+                    const companyShare = j.grossWage * COMPANY_CUT;
+                    totalNet += companyShare;
+                    
+                    if(mitraStats[j.workerId]) {
+                        mitraStats[j.workerId].totalHours += (j.hours + j.minutes/60);
+                        mitraStats[j.workerId].totalWage += (j.grossWage * MITRA_CUT);
+                        mitraStats[j.workerId].ratingSum += j.rating;
+                        mitraStats[j.workerId].jobCount += 1;
+                    }
+                }
+            });
+
+            document.getElementById('totalOmset').innerHTML = `${totalGross.toFixed(0)} <span class="text-lg">EGP</span>`;
+            document.getElementById('netProfit').innerHTML = `${totalNet.toFixed(0)} <span class="text-lg">EGP</span>`;
+            document.getElementById('microfiberCount').innerHTML = `${appData.microfiberLifespan} <span class="text-lg text-gray-500">Sisa</span>`;
+
+            // Update Leaderboard
+            const lbTable = document.getElementById('leaderboardTable');
+            lbTable.innerHTML = '';
+            
+            // Sort logic: total wage descending
+            const rankedMitras = Object.values(mitraStats).sort((a, b) => b.totalWage - a.totalWage);
+            
+            rankedMitras.forEach((m, index) => {
+                const avgRating = m.jobCount > 0 ? (m.ratingSum / m.jobCount).toFixed(1) : '-';
+                const medal = index === 0 && m.jobCount > 0 ? '🥇' : index === 1 && m.jobCount > 0 ? '🥈' : index === 2 && m.jobCount > 0 ? '🥉' : `${index + 1}`;
+                
+                lbTable.innerHTML += `
+                    <tr class="border-b border-gray-100 hover:bg-white/50 transition">
+                        <td class="py-3 px-4 text-xl">${medal}</td>
+                        <td class="py-3 px-4 font-semibold">${m.name}</td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-1 text-xs rounded ${m.status ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}">
+                                ${m.status ? 'Tawaquf' : 'Aktif'}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">${m.totalHours.toFixed(1)} Jam</td>
+                        <td class="py-3 px-4">${avgRating} ⭐</td>
+                        <td class="py-3 px-4 font-bold text-green-600">${m.totalWage.toFixed(0)} EGP</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Initialize App
+        window.onload = () => {
+            updateUI();
+            toggleOwnerExpenses();
+        };
+    </script>
+</body>
+</html>
