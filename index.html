@@ -1,1968 +1,643 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CleanPro Manager — Dashboard</title>
-<style>
-  /* ========== RESET & BASE ========== */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --blue-1: #0066FF;
-    --blue-2: #4D9FFF;
-    --blue-3: #CCE4FF;
-    --blue-4: #E8F4FF;
-    --black: #0A0A0A;
-    --gray-1: #3A3A3A;
-    --gray-2: #6B6B6B;
-    --gray-3: #ABABAB;
-    --gray-4: #D9D9D9;
-    --gray-5: #F5F5F7;
-    --white: #FFFFFF;
-    --glass-bg: rgba(255,255,255,0.65);
-    --glass-border: rgba(255,255,255,0.8);
-    --shadow-sm: 0 2px 12px rgba(0,102,255,0.08);
-    --shadow-md: 0 8px 32px rgba(0,102,255,0.12);
-    --shadow-lg: 0 20px 60px rgba(0,102,255,0.16);
-    --radius-sm: 12px;
-    --radius-md: 20px;
-    --radius-lg: 28px;
-    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-  }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: var(--font);
-    background: #F0F6FF;
-    color: var(--black);
-    overflow-x: hidden;
-    min-height: 100vh;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-width=1.0">
+    <title>Sistem Manajemen Cleaning Service</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Apple Colors */
+            --color-apple-blue: #0071e3;
+            --color-link-blue: #0066cc;
+            --color-signal-blue: #2997ff;
+            --color-carbon: #1d1d1f;
+            --color-frost: #f5f5f7;
+            --color-ice: #f4f8fb;
+            --color-smoke: #333333;
+            --color-ash: #707070;
+            --color-pebble: #e2e2e5;
 
-  /* ========== GOOGLE FONT ========== */
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+            /* Typography */
+            --font-main: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* ========== PARALLAX BG ========== */
-  .parallax-bg {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 0;
-    pointer-events: none;
-    overflow: hidden;
-  }
-  .parallax-blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.35;
-    animation: blobFloat 8s ease-in-out infinite;
-  }
-  .blob-1 { width: 600px; height: 600px; background: #4D9FFF; top: -200px; right: -100px; animation-delay: 0s; }
-  .blob-2 { width: 400px; height: 400px; background: #0066FF; bottom: 100px; left: -100px; animation-delay: -3s; }
-  .blob-3 { width: 300px; height: 300px; background: #CCE4FF; top: 40%; left: 40%; animation-delay: -5s; }
-  @keyframes blobFloat {
-    0%, 100% { transform: translate(0,0) scale(1); }
-    33% { transform: translate(20px,-30px) scale(1.05); }
-    66% { transform: translate(-15px,20px) scale(0.97); }
-  }
+            /* Spacing & Layout */
+            --spacing-8: 8px;
+            --spacing-12: 12px;
+            --spacing-16: 16px;
+            --spacing-24: 24px;
+            --spacing-40: 40px;
+            --spacing-64: 64px;
+            
+            /* Radii */
+            --radius-cards: 8px;
+            --radius-inputs: 8px;
+            --radius-buttons: 980px;
 
-  /* ========== 3D FLOATING PROPS ========== */
-  .props-container {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 0;
-    pointer-events: none;
-  }
-  .prop-3d {
-    position: absolute;
-    animation: propFloat 6s ease-in-out infinite;
-    opacity: 0.12;
-    font-size: 60px;
-    filter: drop-shadow(0 8px 24px rgba(0,102,255,0.3));
-  }
-  .prop-3d:nth-child(1) { top: 10%; right: 5%; animation-delay: 0s; font-size: 80px; }
-  .prop-3d:nth-child(2) { top: 50%; left: 3%; animation-delay: -2s; font-size: 50px; }
-  .prop-3d:nth-child(3) { bottom: 20%; right: 8%; animation-delay: -4s; font-size: 65px; }
-  .prop-3d:nth-child(4) { top: 30%; left: 15%; animation-delay: -1s; font-size: 40px; }
-  @keyframes propFloat {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-20px) rotate(8deg); }
-  }
+            /* Rate */
+            --rate-per-hour: 400;
+        }
 
-  /* ========== NAVBAR ========== */
-  .navbar {
-    position: fixed;
-    top: 16px; left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - 48px);
-    max-width: 1200px;
-    z-index: 1000;
-    background: var(--glass-bg);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    padding: 12px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: var(--shadow-md);
-  }
-  .nav-logo {
-    display: flex; align-items: center; gap: 10px;
-    font-weight: 800; font-size: 18px; color: var(--black);
-    letter-spacing: -0.5px;
-  }
-  .nav-logo-icon {
-    width: 36px; height: 36px;
-    background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px; color: white;
-    box-shadow: 0 4px 12px rgba(0,102,255,0.3);
-  }
-  .nav-tabs {
-    display: flex; gap: 4px;
-    background: rgba(0,0,0,0.04);
-    border-radius: 12px; padding: 4px;
-  }
-  .nav-tab {
-    padding: 7px 18px;
-    border-radius: 9px;
-    border: none; background: transparent;
-    font-family: var(--font); font-size: 13px; font-weight: 500;
-    color: var(--gray-2); cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .nav-tab.active {
-    background: var(--white);
-    color: var(--black); font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  }
-  .nav-role {
-    display: flex; align-items: center; gap: 10px;
-  }
-  .role-badge {
-    padding: 5px 14px;
-    border-radius: 20px;
-    font-size: 12px; font-weight: 600;
-    background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
-    color: white; cursor: pointer;
-    transition: all 0.2s;
-    border: none; font-family: var(--font);
-  }
-  .role-badge:hover { transform: scale(1.05); }
-  .role-badge.viewer {
-    background: linear-gradient(135deg, #34C759, #30D158);
-  }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-  /* ========== MAIN CONTENT ========== */
-  .main-content {
-    position: relative;
-    z-index: 10;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 120px 24px 60px;
-  }
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-frost);
+            color: var(--color-carbon);
+            line-height: 1.47;
+            letter-spacing: -0.016em;
+            overflow-x: hidden;
+        }
 
-  /* ========== PAGE SECTIONS ========== */
-  .page { display: none; }
-  .page.active { display: block; }
+        /* Parallax Background with Blue Prop Abstract Elements */
+        .parallax-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            background: var(--color-frost);
+            overflow: hidden;
+        }
+        
+        .blue-prop-1 {
+            position: absolute;
+            top: -10%; right: -5%;
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, var(--color-signal-blue) 0%, transparent 70%);
+            opacity: 0.15;
+            border-radius: 50%;
+            filter: blur(40px);
+            animation: float 10s infinite ease-in-out;
+        }
 
-  /* ========== GLASS CARD ========== */
-  .glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-  .glass-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-  }
+        .blue-prop-2 {
+            position: absolute;
+            bottom: 10%; left: -10%;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, var(--color-apple-blue) 0%, transparent 70%);
+            opacity: 0.1;
+            border-radius: 50%;
+            filter: blur(60px);
+            animation: float 15s infinite ease-in-out reverse;
+        }
 
-  /* ========== DASHBOARD PAGE ========== */
-  .dashboard-hero {
-    text-align: center;
-    padding: 48px 24px 40px;
-    position: relative;
-  }
-  .dashboard-hero h1 {
-    font-size: clamp(32px, 5vw, 52px);
-    font-weight: 900;
-    letter-spacing: -2px;
-    line-height: 1.1;
-    background: linear-gradient(135deg, var(--black) 0%, var(--blue-1) 60%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .dashboard-hero p {
-    margin-top: 12px;
-    font-size: 16px; color: var(--gray-2); font-weight: 400;
-  }
-  .hero-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--blue-4);
-    border: 1px solid var(--blue-3);
-    border-radius: 20px;
-    padding: 6px 16px;
-    font-size: 12px; font-weight: 600; color: var(--blue-1);
-    margin-bottom: 16px;
-  }
-  .hero-badge::before { content: '●'; font-size: 8px; animation: pulse 1.5s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.05); }
+        }
 
-  /* STATS GRID */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  .stat-card {
-    padding: 24px;
-  }
-  .stat-label {
-    font-size: 12px; font-weight: 600; color: var(--gray-2);
-    text-transform: uppercase; letter-spacing: 0.8px;
-    margin-bottom: 8px;
-  }
-  .stat-value {
-    font-size: 28px; font-weight: 800; color: var(--black);
-    letter-spacing: -1px;
-  }
-  .stat-sub {
-    font-size: 12px; color: var(--gray-3); margin-top: 4px;
-  }
-  .stat-icon {
-    font-size: 32px; margin-bottom: 12px;
-  }
-  .stat-delta {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: 11px; font-weight: 600;
-    padding: 3px 8px; border-radius: 6px; margin-top: 8px;
-  }
-  .stat-delta.up { background: #E8F9EE; color: #1A8A3E; }
-  .stat-delta.neutral { background: var(--gray-5); color: var(--gray-2); }
+        /* Nav Bar */
+        nav {
+            background: rgba(29, 29, 31, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            width: 100%;
+            padding: var(--spacing-8) 0;
+            position: fixed;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid var(--color-smoke);
+        }
 
-  /* CHART AREA */
-  .chart-section {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  @media(max-width:768px){ .chart-section { grid-template-columns: 1fr; } }
-  .chart-card { padding: 24px; }
-  .chart-title {
-    font-size: 15px; font-weight: 700; color: var(--black);
-    margin-bottom: 4px;
-  }
-  .chart-sub {
-    font-size: 12px; color: var(--gray-2); margin-bottom: 20px;
-  }
-  .bar-chart {
-    display: flex; align-items: flex-end;
-    gap: 8px; height: 140px;
-  }
-  .bar-group {
-    flex: 1; display: flex; flex-direction: column;
-    align-items: center; gap: 4px; height: 100%;
-    justify-content: flex-end;
-  }
-  .bar {
-    width: 100%; border-radius: 6px 6px 0 0;
-    transition: height 0.8s cubic-bezier(0.34,1.56,0.64,1);
-    cursor: pointer; position: relative;
-    min-width: 16px;
-  }
-  .bar.owner { background: linear-gradient(to top, var(--blue-1), var(--blue-2)); }
-  .bar.mitra { background: linear-gradient(to top, #34C759, #30D158); }
-  .bar:hover::after {
-    content: attr(data-val);
-    position: absolute;
-    top: -28px; left: 50%;
-    transform: translateX(-50%);
-    background: var(--black); color: white;
-    font-size: 10px; font-weight: 600;
-    padding: 3px 8px; border-radius: 6px;
-    white-space: nowrap;
-  }
-  .bar-label {
-    font-size: 10px; color: var(--gray-2); font-weight: 500;
-    text-align: center;
-  }
-  .chart-legend {
-    display: flex; gap: 16px; margin-bottom: 16px;
-  }
-  .legend-item {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 12px; color: var(--gray-2);
-  }
-  .legend-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-  }
-  .legend-dot.owner { background: var(--blue-1); }
-  .legend-dot.mitra { background: #34C759; }
+        .nav-content {
+            max-width: 980px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 var(--spacing-16);
+        }
 
-  /* DONUT CHART */
-  .donut-wrap {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 12px 0;
-  }
-  .donut-svg { width: 140px; height: 140px; }
-  .donut-center-text { text-anchor: middle; dominant-baseline: middle; }
-  .donut-legend {
-    margin-top: 16px; width: 100%;
-    display: flex; flex-direction: column; gap: 8px;
-  }
-  .donut-legend-item {
-    display: flex; align-items: center; justify-content: space-between;
-    font-size: 12px;
-  }
-  .donut-legend-left { display: flex; align-items: center; gap: 8px; }
-  .donut-legend-dot {
-    width: 10px; height: 10px; border-radius: 3px;
-  }
+        .nav-content h1 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-frost);
+            letter-spacing: normal;
+        }
 
-  /* INVENTORY */
-  .inventory-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
-  }
-  .inv-card {
-    padding: 20px 16px; text-align: center;
-  }
-  .inv-emoji { font-size: 32px; margin-bottom: 8px; }
-  .inv-name { font-size: 12px; font-weight: 600; color: var(--gray-1); margin-bottom: 6px; }
-  .inv-bar-wrap {
-    background: var(--gray-4); border-radius: 4px;
-    height: 6px; overflow: hidden; margin-bottom: 6px;
-  }
-  .inv-bar-fill {
-    height: 100%; border-radius: 4px;
-    background: linear-gradient(to right, var(--blue-1), var(--blue-2));
-    transition: width 1s ease;
-  }
-  .inv-bar-fill.low { background: linear-gradient(to right, #FF3B30, #FF6B6B); }
-  .inv-bar-fill.mid { background: linear-gradient(to right, #FF9500, #FFB340); }
-  .inv-count { font-size: 11px; color: var(--gray-2); }
-  .inv-count strong { color: var(--black); font-weight: 700; }
+        /* Layout & Container */
+        main {
+            max-width: 980px;
+            margin: 100px auto var(--spacing-64);
+            padding: 0 var(--spacing-16);
+        }
 
-  /* ========== JOB ENTRY FORM ========== */
-  .form-header {
-    padding: 32px 32px 24px;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-  }
-  .form-header h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-  .form-header p { font-size: 13px; color: var(--gray-2); margin-top: 4px; }
-  .form-body { padding: 28px 32px; }
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-  @media(max-width:600px) { .form-grid { grid-template-columns: 1fr; } }
-  .form-group { display: flex; flex-direction: column; gap: 6px; }
-  .form-group.full { grid-column: 1 / -1; }
-  .form-label {
-    font-size: 12px; font-weight: 600; color: var(--gray-1);
-    text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .form-input, .form-select, .form-textarea {
-    font-family: var(--font);
-    padding: 12px 16px;
-    border-radius: var(--radius-sm);
-    border: 1.5px solid var(--gray-4);
-    background: rgba(255,255,255,0.8);
-    font-size: 14px; font-weight: 500;
-    color: var(--black);
-    transition: all 0.2s;
-    outline: none;
-  }
-  .form-input:focus, .form-select:focus {
-    border-color: var(--blue-1);
-    box-shadow: 0 0 0 4px rgba(0,102,255,0.08);
-    background: white;
-  }
-  .duration-group {
-    display: flex; gap: 10px; align-items: center;
-  }
-  .duration-group input {
-    flex: 1; text-align: center;
-  }
-  .duration-sep { color: var(--gray-2); font-weight: 700; font-size: 18px; }
+        section {
+            margin-bottom: var(--spacing-64);
+        }
 
-  /* STAR RATING */
-  .star-rating { display: flex; gap: 6px; }
-  .star-btn {
-    font-size: 28px; cursor: pointer;
-    background: none; border: none;
-    transition: transform 0.15s;
-    filter: grayscale(1);
-    opacity: 0.4;
-  }
-  .star-btn.active { filter: grayscale(0); opacity: 1; }
-  .star-btn:hover { transform: scale(1.2); }
+        /* Typography */
+        h2 {
+            font-size: 40px;
+            font-weight: 600;
+            letter-spacing: 0.011em;
+            margin-bottom: var(--spacing-24);
+        }
+        h3 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-16);
+        }
+        .subtitle {
+            font-size: 21px;
+            font-weight: 300;
+            color: var(--color-ash);
+            margin-bottom: var(--spacing-40);
+        }
 
-  /* EXPENSES */
-  .expense-section {
-    background: var(--blue-4);
-    border: 1px solid var(--blue-3);
-    border-radius: var(--radius-sm);
-    padding: 20px;
-    margin-top: 4px;
-  }
-  .expense-section h4 {
-    font-size: 13px; font-weight: 700; color: var(--blue-1);
-    margin-bottom: 14px;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .expense-items { display: flex; flex-direction: column; gap: 10px; }
-  .expense-row {
-    display: flex; align-items: center; gap: 10px;
-  }
-  .expense-row label {
-    font-size: 12px; font-weight: 500; color: var(--gray-1);
-    width: 120px; flex-shrink: 0;
-  }
-  .expense-row input {
-    flex: 1;
-  }
-  .expense-total {
-    margin-top: 14px; padding-top: 12px;
-    border-top: 1px solid var(--blue-3);
-    display: flex; justify-content: space-between;
-    font-size: 13px; font-weight: 700; color: var(--black);
-  }
+        /* Glassmorphism Cards */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: var(--radius-cards);
+            padding: var(--spacing-24);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 24px;
+            transition: transform 0.3s ease;
+        }
 
-  /* SUBMIT BUTTON */
-  .btn-primary {
-    width: 100%;
-    padding: 15px;
-    border-radius: var(--radius-sm);
-    border: none;
-    background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
-    color: white;
-    font-family: var(--font);
-    font-size: 15px; font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 16px rgba(0,102,255,0.3);
-    letter-spacing: -0.3px;
-    margin-top: 8px;
-  }
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,102,255,0.4);
-  }
-  .btn-primary:active { transform: scale(0.98); }
+        .glass-card:hover {
+            transform: translateY(-2px);
+        }
 
-  .btn-secondary {
-    padding: 10px 20px;
-    border-radius: var(--radius-sm);
-    border: 1.5px solid var(--gray-4);
-    background: white;
-    color: var(--black);
-    font-family: var(--font);
-    font-size: 13px; font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-secondary:hover { border-color: var(--blue-1); color: var(--blue-1); }
+        /* Grids */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-24);
+        }
 
-  .btn-danger {
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: none;
-    background: #FFE5E5;
-    color: #FF3B30;
-    font-family: var(--font);
-    font-size: 12px; font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-danger:hover { background: #FF3B30; color: white; }
+        /* Dashboard Stats */
+        .stat-value {
+            font-size: 44px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--color-carbon);
+            margin-top: var(--spacing-8);
+        }
+        .stat-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-ash);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
 
-  /* ========== RECORDS TABLE ========== */
-  .table-wrap {
-    overflow-x: auto;
-    border-radius: var(--radius-md);
-  }
-  .data-table {
-    width: 100%; border-collapse: collapse;
-    font-size: 13px;
-  }
-  .data-table th {
-    padding: 14px 16px;
-    text-align: left;
-    font-size: 11px; font-weight: 700;
-    color: var(--gray-2); text-transform: uppercase; letter-spacing: 0.7px;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-    background: rgba(255,255,255,0.5);
-    position: sticky; top: 0;
-    backdrop-filter: blur(8px);
-  }
-  .data-table td {
-    padding: 14px 16px;
-    border-bottom: 1px solid rgba(0,0,0,0.04);
-    vertical-align: middle;
-  }
-  .data-table tr:hover td { background: rgba(0,102,255,0.03); }
-  .data-table tr:last-child td { border-bottom: none; }
-  .worker-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 10px; border-radius: 20px;
-    font-size: 11px; font-weight: 700;
-  }
-  .worker-pill.owner {
-    background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
-    color: white;
-  }
-  .worker-pill.mitra {
-    background: #E8F9EE; color: #1A8A3E;
-  }
-  .stars-display { color: #FFD60A; font-size: 13px; }
-  .action-btns { display: flex; gap: 6px; }
-  .btn-edit {
-    padding: 5px 10px; border-radius: 7px;
-    border: 1.5px solid var(--gray-4);
-    background: white; color: var(--black);
-    font-size: 11px; font-weight: 600;
-    cursor: pointer; font-family: var(--font);
-    transition: all 0.2s;
-  }
-  .btn-edit:hover { border-color: var(--blue-1); color: var(--blue-1); }
+        /* Forms & Inputs */
+        .form-group {
+            margin-bottom: var(--spacing-16);
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-8);
+            color: var(--color-carbon);
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--radius-inputs);
+            border: 1px solid var(--color-pebble);
+            background: var(--color-frost);
+            font-size: 17px;
+            font-family: var(--font-main);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus {
+            border-color: var(--color-apple-blue);
+            box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.2);
+        }
 
-  /* ========== MITRA PAGE ========== */
-  .mitra-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  .mitra-card { padding: 24px; position: relative; overflow: hidden; }
-  .mitra-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(to right, var(--blue-1), var(--blue-2));
-  }
-  .mitra-card.tawaquf::before {
-    background: linear-gradient(to right, var(--gray-3), var(--gray-4));
-  }
-  .mitra-avatar {
-    width: 56px; height: 56px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px; color: white; font-weight: 800;
-    margin-bottom: 14px;
-    box-shadow: 0 4px 12px rgba(0,102,255,0.25);
-  }
-  .mitra-card.tawaquf .mitra-avatar {
-    background: linear-gradient(135deg, var(--gray-3), var(--gray-4));
-    box-shadow: none;
-  }
-  .mitra-name { font-size: 17px; font-weight: 800; color: var(--black); }
-  .mitra-status {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-size: 11px; font-weight: 600;
-    padding: 3px 10px; border-radius: 20px;
-    margin: 6px 0 16px;
-  }
-  .mitra-status.active { background: #E8F9EE; color: #1A8A3E; }
-  .mitra-status.tawaquf { background: var(--gray-5); color: var(--gray-2); }
-  .mitra-status::before {
-    content: '●'; font-size: 7px;
-    animation: pulse 1.5s infinite;
-  }
-  .mitra-status.tawaquf::before { animation: none; }
-  .mitra-stats {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 10px; margin-bottom: 16px;
-  }
-  .mitra-stat-item {
-    background: var(--gray-5); border-radius: 10px;
-    padding: 10px 12px;
-  }
-  .mitra-stat-label { font-size: 10px; color: var(--gray-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-  .mitra-stat-val { font-size: 18px; font-weight: 800; color: var(--black); margin-top: 2px; }
-  .mitra-card-actions { display: flex; gap: 8px; }
-  .toggle-btn {
-    flex: 1; padding: 9px;
-    border-radius: 10px; border: none;
-    font-family: var(--font); font-size: 12px; font-weight: 700;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .toggle-btn.active {
-    background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
-    color: white; box-shadow: 0 3px 10px rgba(0,102,255,0.25);
-  }
-  .toggle-btn.paused {
-    background: #E8F9EE; color: #1A8A3E;
-  }
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            border-radius: var(--radius-buttons);
+            padding: 11px 24px;
+            font-size: 17px;
+            font-weight: 400;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .btn-primary {
+            background-color: var(--color-apple-blue);
+            color: #fff;
+        }
+        .btn-primary:hover { background-color: #0077ED; }
+        
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--color-link-blue);
+            border: 1px solid var(--color-link-blue);
+        }
+        .btn-secondary:hover { background-color: rgba(0, 102, 204, 0.05); }
 
-  /* ADD MITRA FORM */
-  .add-mitra-form {
-    padding: 24px;
-    margin-bottom: 24px;
-  }
-  .add-mitra-form h3 {
-    font-size: 17px; font-weight: 800; margin-bottom: 16px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .add-mitra-row {
-    display: flex; gap: 12px; align-items: flex-end;
-    flex-wrap: wrap;
-  }
-  .add-mitra-row .form-group { flex: 1; min-width: 180px; }
+        .btn-danger {
+            background-color: transparent;
+            color: #e30000;
+            border: 1px solid #e30000;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
 
-  /* ========== LEADERBOARD PAGE ========== */
-  .leaderboard-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
-  }
-  .leaderboard-title { font-size: 22px; font-weight: 800; }
-  .week-filter {
-    display: flex; gap: 8px;
-  }
-  .week-btn {
-    padding: 7px 16px; border-radius: 10px;
-    border: 1.5px solid var(--gray-4);
-    background: white; color: var(--gray-2);
-    font-size: 12px; font-weight: 600;
-    cursor: pointer; font-family: var(--font);
-    transition: all 0.2s;
-  }
-  .week-btn.active {
-    border-color: var(--blue-1); color: var(--blue-1);
-    background: var(--blue-4);
-  }
-  .rank-card {
-    padding: 20px 24px;
-    display: flex; align-items: center; gap: 16px;
-    margin-bottom: 12px;
-    transition: all 0.3s;
-  }
-  .rank-card:hover { transform: translateX(4px); }
-  .rank-num {
-    font-size: 22px; font-weight: 900;
-    width: 40px; text-align: center;
-    color: var(--gray-3);
-  }
-  .rank-num.gold { color: #FFD60A; }
-  .rank-num.silver { color: #8E8E93; }
-  .rank-num.bronze { color: #C67C37; }
-  .rank-avatar {
-    width: 48px; height: 48px; border-radius: 14px;
-    background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px; color: white; font-weight: 800;
-    flex-shrink: 0;
-  }
-  .rank-info { flex: 1; }
-  .rank-name { font-size: 15px; font-weight: 700; }
-  .rank-detail { font-size: 12px; color: var(--gray-2); margin-top: 2px; }
-  .rank-score-wrap { text-align: right; }
-  .rank-score { font-size: 24px; font-weight: 900; color: var(--blue-1); }
-  .rank-score-label { font-size: 11px; color: var(--gray-2); font-weight: 600; }
-  .rank-bar-wrap {
-    margin-top: 8px; height: 4px;
-    background: var(--gray-4); border-radius: 2px; overflow: hidden;
-  }
-  .rank-bar {
-    height: 100%; border-radius: 2px;
-    background: linear-gradient(to right, var(--blue-1), var(--blue-2));
-    transition: width 1.2s cubic-bezier(0.34,1.56,0.64,1);
-  }
+        /* Tables & Lists */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: var(--spacing-16);
+        }
+        .data-table th, .data-table td {
+            padding: 12px var(--spacing-8);
+            text-align: left;
+            border-bottom: 1px solid var(--color-pebble);
+            font-size: 14px;
+        }
+        .data-table th {
+            font-weight: 600;
+            color: var(--color-ash);
+        }
 
-  /* ========== TOAST NOTIFICATION ========== */
-  .toast {
-    position: fixed;
-    bottom: 32px; right: 32px;
-    z-index: 9999;
-    background: var(--black);
-    color: white;
-    padding: 14px 20px;
-    border-radius: var(--radius-sm);
-    font-size: 13px; font-weight: 500;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-    transform: translateY(100px);
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-    display: flex; align-items: center; gap: 8px;
-    max-width: 320px;
-  }
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast-icon { font-size: 16px; }
+        /* Toggle Switch for Tawaquf */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--color-pebble);
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 18px; width: 18px; left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .slider { background-color: var(--color-signal-blue); }
+        input:checked + .slider:before { transform: translateX(20px); }
 
-  /* ========== MODAL ========== */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(8px);
-    z-index: 2000;
-    display: flex; align-items: center; justify-content: center;
-    padding: 24px;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.3s;
-  }
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
-  .modal-box {
-    background: var(--white);
-    border-radius: var(--radius-lg);
-    max-width: 480px; width: 100%;
-    padding: 32px;
-    box-shadow: var(--shadow-lg);
-    transform: scale(0.95);
-    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  .modal-overlay.open .modal-box { transform: scale(1); }
-  .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
-  .modal-sub { font-size: 13px; color: var(--gray-2); margin-bottom: 24px; }
-  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-  .modal-actions button { flex: 1; padding: 12px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-  .modal-confirm { background: #FF3B30; color: white; border: none; }
-  .modal-cancel { background: var(--gray-5); color: var(--black); border: none; }
-  .modal-confirm:hover { background: #E00000; }
+        .badge {
+            padding: 4px 8px;
+            border-radius: var(--radius-buttons);
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-active { background: #e3f5e1; color: #1d7c1d; }
+        .badge-tawaquf { background: var(--color-pebble); color: var(--color-ash); }
 
-  /* ========== SECTION HEADER ========== */
-  .section-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
-  }
-  .section-title { font-size: 18px; font-weight: 800; }
-  .section-title span { color: var(--blue-1); }
-
-  /* ========== VIEWER MODE NOTICE ========== */
-  .viewer-notice {
-    background: linear-gradient(135deg, #FFF9E6, #FFFDE7);
-    border: 1px solid #FFD60A;
-    border-radius: var(--radius-sm);
-    padding: 12px 20px;
-    display: flex; align-items: center; gap: 10px;
-    font-size: 13px; font-weight: 600; color: #7A5F00;
-    margin-bottom: 20px;
-  }
-
-  /* ========== EMPTY STATE ========== */
-  .empty-state {
-    text-align: center; padding: 48px 24px;
-    color: var(--gray-2);
-  }
-  .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
-  .empty-state p { font-size: 14px; }
-
-  /* ========== SCROLLBAR ========== */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--gray-4); border-radius: 3px; }
-
-  /* ========== RESPONSIVE ========== */
-  @media(max-width:600px) {
-    .navbar { width: calc(100% - 24px); padding: 10px 16px; }
-    .nav-tabs { display: none; }
-    .main-content { padding: 100px 12px 60px; }
-    .form-body { padding: 20px; }
-    .form-header { padding: 20px; }
-  }
-
-  /* ========== ANIMATIONS ========== */
-  .fade-in {
-    opacity: 0; transform: translateY(20px);
-    animation: fadeInUp 0.6s ease forwards;
-  }
-  @keyframes fadeInUp {
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .stagger-1 { animation-delay: 0.1s; }
-  .stagger-2 { animation-delay: 0.2s; }
-  .stagger-3 { animation-delay: 0.3s; }
-  .stagger-4 { animation-delay: 0.4s; }
-
-  /* ========== SUMMARY BANNER ========== */
-  .summary-banner {
-    background: linear-gradient(135deg, var(--blue-1) 0%, #003DA6 100%);
-    border-radius: var(--radius-md);
-    padding: 28px 32px;
-    color: white;
-    display: flex; align-items: center; justify-content: space-between;
-    flex-wrap: wrap; gap: 20px;
-    margin-bottom: 24px;
-    position: relative;
-    overflow: hidden;
-  }
-  .summary-banner::before {
-    content: '';
-    position: absolute;
-    top: -50%; right: -5%;
-    width: 300px; height: 300px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 50%;
-  }
-  .summary-banner::after {
-    content: '';
-    position: absolute;
-    bottom: -40%; right: 15%;
-    width: 200px; height: 200px;
-    background: rgba(255,255,255,0.04);
-    border-radius: 50%;
-  }
-  .banner-left h2 { font-size: 28px; font-weight: 900; letter-spacing: -1px; }
-  .banner-left p { font-size: 13px; opacity: 0.7; margin-top: 4px; }
-  .banner-right {
-    display: flex; gap: 24px;
-    position: relative; z-index: 1;
-  }
-  .banner-stat { text-align: right; }
-  .banner-stat-val { font-size: 20px; font-weight: 800; }
-  .banner-stat-label { font-size: 11px; opacity: 0.7; font-weight: 500; }
-
-  /* ========== INLINE TAB MOBILE NAV ========== */
-  .mobile-nav {
-    display: none;
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    z-index: 999;
-    background: var(--glass-bg);
-    backdrop-filter: blur(24px);
-    border-top: 1px solid var(--glass-border);
-    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
-  }
-  @media(max-width:600px) { .mobile-nav { display: flex; justify-content: space-around; } }
-  .mob-nav-btn {
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    padding: 6px 16px;
-    border: none; background: none;
-    font-family: var(--font); font-size: 10px; font-weight: 600;
-    color: var(--gray-2); cursor: pointer; transition: color 0.2s;
-  }
-  .mob-nav-btn.active { color: var(--blue-1); }
-  .mob-nav-btn span { font-size: 20px; }
-
-</style>
+        /* Flex helpers */
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .flex-gap { display: flex; gap: var(--spacing-12); align-items: center; }
+    </style>
 </head>
 <body>
 
-<!-- PARALLAX BACKGROUND -->
-<div class="parallax-bg">
-  <div class="parallax-blob blob-1"></div>
-  <div class="parallax-blob blob-2"></div>
-  <div class="parallax-blob blob-3"></div>
-</div>
-
-<!-- 3D FLOATING PROPS -->
-<div class="props-container">
-  <div class="prop-3d">🧴</div>
-  <div class="prop-3d">🧽</div>
-  <div class="prop-3d">💧</div>
-  <div class="prop-3d">🫧</div>
-</div>
-
-<!-- NAVBAR -->
-<nav class="navbar">
-  <div class="nav-logo">
-    <div class="nav-logo-icon">🧹</div>
-    CleanPro
-  </div>
-  <div class="nav-tabs" id="navTabs">
-    <button class="nav-tab active" onclick="showPage('dashboard',this)">Dashboard</button>
-    <button class="nav-tab" onclick="showPage('jobs',this)">Catat Kerja</button>
-    <button class="nav-tab" onclick="showPage('records',this)">Riwayat</button>
-    <button class="nav-tab" onclick="showPage('mitra',this)">Mitra</button>
-    <button class="nav-tab" onclick="showPage('leaderboard',this)">Leaderboard</button>
-  </div>
-  <div class="nav-role">
-    <button class="role-badge" id="roleToggle" onclick="toggleRole()">👑 Admin</button>
-  </div>
-</nav>
-
-<!-- MAIN CONTENT -->
-<div class="main-content">
-
-  <!-- ===== DASHBOARD PAGE ===== -->
-  <div class="page active" id="page-dashboard">
-    <div class="dashboard-hero fade-in">
-      <div class="hero-badge">✦ Live Dashboard</div>
-      <h1>CleanPro<br>Business Manager</h1>
-      <p>Sistem manajemen usaha kebersihan profesional — transparan, efisien, akurat.</p>
+    <div class="parallax-bg">
+        <div class="blue-prop-1"></div>
+        <div class="blue-prop-2"></div>
     </div>
 
-    <div class="summary-banner fade-in stagger-1" id="summaryBanner">
-      <div class="banner-left">
-        <h2 id="totalGrossDisplay">EGP 0</h2>
-        <p>Total Pemasukan Kotor Keseluruhan</p>
-      </div>
-      <div class="banner-right">
-        <div class="banner-stat">
-          <div class="banner-stat-val" id="netCompanyDisplay">EGP 0</div>
-          <div class="banner-stat-label">Pendapatan Bersih Perusahaan</div>
+    <nav>
+        <div class="nav-content">
+            <h1>CleanAppHQ</h1>
+            <div style="font-size: 12px; color: var(--color-ash);">Mode Admin (Owner)</div>
         </div>
-        <div class="banner-stat">
-          <div class="banner-stat-val" id="totalJobsDisplay">0</div>
-          <div class="banner-stat-label">Total Pekerjaan</div>
-        </div>
-      </div>
-    </div>
+    </nav>
 
-    <div class="stats-grid">
-      <div class="glass-card stat-card fade-in stagger-1">
-        <div class="stat-icon">💼</div>
-        <div class="stat-label">Gross Owner</div>
-        <div class="stat-value" id="ownerGrossDisp">EGP 0</div>
-        <div class="stat-sub">Sebelum pengeluaran bahan</div>
-        <div class="stat-delta up" id="ownerJobCount">0 pekerjaan</div>
-      </div>
-      <div class="glass-card stat-card fade-in stagger-2">
-        <div class="stat-icon">📊</div>
-        <div class="stat-label">Net Profit Owner</div>
-        <div class="stat-value" id="ownerNetDisp">EGP 0</div>
-        <div class="stat-sub">Setelah COGS & pengeluaran</div>
-        <div class="stat-delta up" id="ownerCogsDisp">COGS: EGP 0</div>
-      </div>
-      <div class="glass-card stat-card fade-in stagger-3">
-        <div class="stat-icon">🤝</div>
-        <div class="stat-label">Gross Mitra</div>
-        <div class="stat-value" id="mitraGrossDisp">EGP 0</div>
-        <div class="stat-sub">Total omzet semua mitra</div>
-        <div class="stat-delta up" id="mitraJobCount">0 pekerjaan</div>
-      </div>
-      <div class="glass-card stat-card fade-in stagger-4">
-        <div class="stat-icon">🏦</div>
-        <div class="stat-label">Potongan Mitra (20%)</div>
-        <div class="stat-value" id="mitraCutDisp">EGP 0</div>
-        <div class="stat-sub">Pendapatan perusahaan dari mitra</div>
-        <div class="stat-delta neutral" id="mitraAvgScore">Avg: 0.0 ⭐</div>
-      </div>
-    </div>
-
-    <div class="chart-section">
-      <div class="glass-card chart-card fade-in stagger-1">
-        <div class="chart-title">Pendapatan Mingguan</div>
-        <div class="chart-sub">Owner vs Mitra — 8 minggu terakhir</div>
-        <div class="chart-legend">
-          <div class="legend-item"><div class="legend-dot owner"></div> Owner</div>
-          <div class="legend-item"><div class="legend-dot mitra"></div> Mitra</div>
-        </div>
-        <div class="bar-chart" id="weeklyChart">
-          <!-- Generated by JS -->
-        </div>
-        <div style="display:flex;gap:8px;margin-top:8px;" id="weeklyLabels"></div>
-      </div>
-      <div class="glass-card chart-card fade-in stagger-2">
-        <div class="chart-title">Distribusi Pendapatan</div>
-        <div class="chart-sub">Komposisi sumber pemasukan</div>
-        <div class="donut-wrap">
-          <svg class="donut-svg" viewBox="0 0 36 36" id="donutSvg">
-            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#F0F6FF" stroke-width="3.8"/>
-            <circle id="donutOwner" cx="18" cy="18" r="15.9" fill="none"
-              stroke="#0066FF" stroke-width="3.8"
-              stroke-dasharray="50 50" stroke-dashoffset="25"
-              stroke-linecap="round"
-              style="transition:stroke-dasharray 1s ease"/>
-            <circle id="donutMitra" cx="18" cy="18" r="15.9" fill="none"
-              stroke="#34C759" stroke-width="3.8"
-              stroke-dasharray="50 50" stroke-dashoffset="-25"
-              stroke-linecap="round"
-              style="transition:stroke-dasharray 1s ease, stroke-dashoffset 1s ease"/>
-            <text x="18" y="17" class="donut-center-text" font-size="4" font-weight="700" fill="#0A0A0A" id="donutPct">—</text>
-            <text x="18" y="21.5" class="donut-center-text" font-size="2.5" fill="#6B6B6B">Owner</text>
-          </svg>
-          <div class="donut-legend">
-            <div class="donut-legend-item">
-              <div class="donut-legend-left"><div class="donut-legend-dot" style="background:#0066FF"></div><span style="font-size:12px;font-weight:500">Owner</span></div>
-              <span style="font-size:12px;font-weight:700" id="donutOwnerVal">EGP 0</span>
-            </div>
-            <div class="donut-legend-item">
-              <div class="donut-legend-left"><div class="donut-legend-dot" style="background:#34C759"></div><span style="font-size:12px;font-weight:500">Mitra (20%)</span></div>
-              <span style="font-size:12px;font-weight:700" id="donutMitraVal">EGP 0</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- INVENTORY -->
-    <div class="section-header fade-in">
-      <div class="section-title">Asset & <span>Inventory</span> Tracker</div>
-      <button class="btn-secondary" onclick="resetInventory()">🔄 Reset Stok</button>
-    </div>
-    <div class="inventory-grid fade-in" id="inventoryGrid">
-      <!-- Generated by JS -->
-    </div>
-  </div>
-
-  <!-- ===== JOB ENTRY PAGE ===== -->
-  <div class="page" id="page-jobs">
-    <div id="viewerJobNotice" class="viewer-notice" style="display:none">
-      👁️ Anda dalam mode Viewer. Formulir ini hanya tersedia untuk Admin.
-    </div>
-    <div class="glass-card" id="jobFormCard">
-      <div class="form-header">
-        <h2>✦ Catat Pekerjaan Baru</h2>
-        <p>Masukkan detail sesi kerja secara lengkap dan akurat.</p>
-      </div>
-      <div class="form-body">
-        <form id="jobForm">
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Nama Pekerja</label>
-              <select class="form-select" id="workerSelect" onchange="handleWorkerChange()">
-                <option value="Owner">👑 Owner</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Tanggal</label>
-              <input type="date" class="form-input" id="jobDate">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Daerah Customer</label>
-              <input type="text" class="form-input" id="jobArea" placeholder="Contoh: Nasr City, Cairo">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Durasi Kerja</label>
-              <div class="duration-group">
-                <input type="number" class="form-input" id="jobHours" placeholder="Jam" min="0" max="24" value="0">
-                <span class="duration-sep">:</span>
-                <input type="number" class="form-input" id="jobMinutes" placeholder="Menit" min="0" max="59" value="0">
-              </div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">Quality Score (Rating Customer)</label>
-              <div class="star-rating" id="starRating">
-                <button type="button" class="star-btn" data-val="1" onclick="setRating(1)">⭐</button>
-                <button type="button" class="star-btn" data-val="2" onclick="setRating(2)">⭐</button>
-                <button type="button" class="star-btn" data-val="3" onclick="setRating(3)">⭐</button>
-                <button type="button" class="star-btn" data-val="4" onclick="setRating(4)">⭐</button>
-                <button type="button" class="star-btn" data-val="5" onclick="setRating(5)">⭐</button>
-              </div>
-              <div style="font-size:12px;color:var(--gray-2);margin-top:4px" id="ratingLabel">Belum diberi rating</div>
-            </div>
-            <div class="form-group full" id="expenseSection" style="display:none">
-              <label class="form-label">💰 COGS & Pengeluaran Sesi (Owner)</label>
-              <div class="expense-section">
-                <h4>📋 Rincian Biaya Bahan & Operasional</h4>
-                <div class="expense-items">
-                  <div class="expense-row">
-                    <label>🧴 Sabun / Detergen</label>
-                    <input type="number" class="form-input" id="expSabun" placeholder="EGP" min="0" value="0" oninput="calcExpenses()">
-                  </div>
-                  <div class="expense-row">
-                    <label>🧽 Sponge Silk</label>
-                    <input type="number" class="form-input" id="expSponge" placeholder="EGP" min="0" value="0" oninput="calcExpenses()">
-                  </div>
-                  <div class="expense-row">
-                    <label>🚗 Transport</label>
-                    <input type="number" class="form-input" id="expTransport" placeholder="EGP" min="0" value="0" oninput="calcExpenses()">
-                  </div>
-                  <div class="expense-row">
-                    <label>🧪 Cairan Kimia</label>
-                    <input type="number" class="form-input" id="expKimia" placeholder="EGP" min="0" value="0" oninput="calcExpenses()">
-                  </div>
-                  <div class="expense-row">
-                    <label>📦 Lain-lain</label>
-                    <input type="number" class="form-input" id="expLain" placeholder="EGP" min="0" value="0" oninput="calcExpenses()">
-                  </div>
+    <main>
+        <section>
+            <h2>Ringkasan Finansial</h2>
+            <p class="subtitle">Tarif Jasa: 400 EGP/Jam &middot; Sistem Transparan Apple-style.</p>
+            
+            <div class="grid-3">
+                <div class="glass-card">
+                    <div class="stat-label">Total Pemasukan Kotor</div>
+                    <div class="stat-value" id="gross-revenue">0 EGP</div>
                 </div>
-                <div class="expense-total">
-                  <span>Total Pengeluaran</span>
-                  <span id="expTotal">EGP 0</span>
+                <div class="glass-card">
+                    <div class="stat-label">Pendapatan Bersih (Perusahaan)</div>
+                    <div class="stat-value" id="net-revenue" style="color: var(--color-apple-blue);">0 EGP</div>
                 </div>
-              </div>
+                <div class="glass-card">
+                    <div class="stat-label">Sisa Inventory / Alat</div>
+                    <div class="stat-value" id="inventory-count">50</div>
+                    <div style="font-size: 12px; color: var(--color-ash); margin-top: 8px;">(Berkurang otomatis tiap job)</div>
+                </div>
             </div>
+        </section>
 
-            <!-- Live Preview -->
-            <div class="form-group full">
-              <div style="background:var(--blue-4);border:1px solid var(--blue-3);border-radius:var(--radius-sm);padding:16px;display:flex;flex-wrap:wrap;gap:16px;">
-                <div>
-                  <div style="font-size:11px;font-weight:700;color:var(--blue-1);text-transform:uppercase;letter-spacing:0.5px">Total Upah</div>
-                  <div style="font-size:22px;font-weight:900;color:var(--black)" id="previewWage">EGP 0</div>
+        <section class="glass-card">
+            <h3>Input Pekerjaan Baru</h3>
+            <form id="job-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <div class="form-group">
+                    <label>Pekerja</label>
+                    <select id="worker-select" onchange="toggleOwnerFields()" required>
+                        <option value="Owner">Owner</option>
+                        </select>
                 </div>
-                <div id="previewMitraShare" style="display:none">
-                  <div style="font-size:11px;font-weight:700;color:#1A8A3E;text-transform:uppercase;letter-spacing:0.5px">Bagian Mitra (80%)</div>
-                  <div style="font-size:22px;font-weight:900;color:#1A8A3E" id="previewMitraVal">EGP 0</div>
+                <div class="form-group">
+                    <label>Tanggal</label>
+                    <input type="date" id="job-date" required>
                 </div>
-                <div id="previewCompanyShare" style="display:none">
-                  <div style="font-size:11px;font-weight:700;color:var(--blue-1);text-transform:uppercase;letter-spacing:0.5px">Perusahaan (20%)</div>
-                  <div style="font-size:22px;font-weight:900;color:var(--blue-1)" id="previewCompanyVal">EGP 0</div>
+                <div class="form-group">
+                    <label>Daerah Customer</label>
+                    <input type="text" id="job-area" placeholder="Misal: Nasr City" required>
                 </div>
-                <div id="previewOwnerNet" style="display:none">
-                  <div style="font-size:11px;font-weight:700;color:#FF9500;text-transform:uppercase;letter-spacing:0.5px">Net Profit Owner</div>
-                  <div style="font-size:22px;font-weight:900;color:#FF9500" id="previewOwnerNetVal">EGP 0</div>
+                <div class="form-group">
+                    <label>Durasi Kerja</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="number" id="job-hours" placeholder="Jam" min="0" required>
+                        <input type="number" id="job-minutes" placeholder="Menit" min="0" max="59" required>
+                    </div>
                 </div>
-              </div>
+                <div class="form-group">
+                    <label>Quality Score (Bintang 1-5)</label>
+                    <input type="number" id="job-rating" min="1" max="5" step="0.1" placeholder="5" required>
+                </div>
+                <div class="form-group" id="owner-expenses-group">
+                    <label>Pengeluaran Sesi (Khusus Owner - EGP)</label>
+                    <input type="number" id="job-expenses" min="0" placeholder="Biaya Sabun, Transport, dll">
+                </div>
+                <div style="grid-column: span 2; display: flex; justify-content: flex-end; gap: 12px;">
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
+                    <button type="submit" class="btn btn-primary">Simpan Data</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="glass-card">
+            <div class="flex-between">
+                <h3>Manajemen Mitra</h3>
+                <div class="flex-gap">
+                    <input type="text" id="new-mitra-name" placeholder="Nama Mitra Baru" style="padding: 8px; font-size: 14px;">
+                    <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="addMitra()">Add Mitra</button>
+                </div>
             </div>
-          </div>
-          <button type="submit" class="btn-primary">✦ Simpan Pekerjaan</button>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== RECORDS PAGE ===== -->
-  <div class="page" id="page-records">
-    <div class="section-header fade-in">
-      <div class="section-title">Riwayat <span>Pekerjaan</span></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <input type="text" class="form-input" id="searchInput" placeholder="🔍 Cari nama / daerah..." style="width:200px;padding:9px 14px" oninput="renderRecords()">
-        <select class="form-select" id="filterWorker" style="padding:9px 14px" onchange="renderRecords()">
-          <option value="">Semua Pekerja</option>
-        </select>
-      </div>
-    </div>
-    <div class="glass-card table-wrap fade-in">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Pekerja</th>
-            <th>Tanggal</th>
-            <th>Daerah</th>
-            <th>Durasi</th>
-            <th>Total Upah</th>
-            <th>Bagian Mitra</th>
-            <th>Bagian Perusahaan</th>
-            <th>COGS</th>
-            <th>Net Profit</th>
-            <th>Rating</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="recordsBody">
-          <tr><td colspan="12"><div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada data pekerjaan. Mulai catat dari menu "Catat Kerja".</p></div></td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ===== MITRA PAGE ===== -->
-  <div class="page" id="page-mitra">
-    <div id="viewerMitraNotice" class="viewer-notice" style="display:none">
-      👁️ Anda dalam mode Viewer — hanya dapat melihat profil mitra.
-    </div>
-
-    <div class="glass-card add-mitra-form fade-in" id="addMitraForm">
-      <h3>➕ Tambah Mitra Baru</h3>
-      <div class="add-mitra-row">
-        <div class="form-group">
-          <label class="form-label">Nama Lengkap</label>
-          <input type="text" class="form-input" id="newMitraName" placeholder="Nama mitra...">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Spesialisasi</label>
-          <input type="text" class="form-input" id="newMitraSpec" placeholder="Contoh: AC, Karpet, Umum">
-        </div>
-        <button class="btn-primary" style="width:auto;padding:12px 24px;margin-top:20px" onclick="addMitra()">Tambah</button>
-      </div>
-    </div>
-
-    <div class="section-header">
-      <div class="section-title">Profil <span>Mitra</span></div>
-    </div>
-    <div class="mitra-grid" id="mitraGrid">
-      <!-- Generated by JS -->
-    </div>
-  </div>
-
-  <!-- ===== LEADERBOARD PAGE ===== -->
-  <div class="page" id="page-leaderboard">
-    <div class="leaderboard-header fade-in">
-      <div class="leaderboard-title">🏆 Leaderboard <span style="color:var(--blue-1)">Mitra</span></div>
-      <div class="week-filter">
-        <button class="week-btn active" id="wbAll" onclick="setLBFilter('all',this)">Semua</button>
-        <button class="week-btn" id="wbWeek" onclick="setLBFilter('week',this)">Minggu Ini</button>
-        <button class="week-btn" id="wbMonth" onclick="setLBFilter('month',this)">Bulan Ini</button>
-      </div>
-    </div>
-
-    <div class="glass-card" style="padding:24px;margin-bottom:20px;display:flex;gap:24px;flex-wrap:wrap" id="lbSummary">
-      <div><div style="font-size:11px;font-weight:700;color:var(--gray-2);text-transform:uppercase;letter-spacing:0.5px">Total Mitra Aktif</div><div style="font-size:24px;font-weight:900" id="lbActiveCnt">0</div></div>
-      <div><div style="font-size:11px;font-weight:700;color:var(--gray-2);text-transform:uppercase;letter-spacing:0.5px">Total Jam Mitra</div><div style="font-size:24px;font-weight:900" id="lbTotalHours">0j 0m</div></div>
-      <div><div style="font-size:11px;font-weight:700;color:var(--gray-2);text-transform:uppercase;letter-spacing:0.5px">Avg Quality Score</div><div style="font-size:24px;font-weight:900" id="lbAvgScore">0.0 ⭐</div></div>
-    </div>
-
-    <div id="leaderboardList" class="fade-in">
-      <!-- Generated by JS -->
-    </div>
-  </div>
-
-</div><!-- /main-content -->
-
-<!-- MOBILE NAV -->
-<nav class="mobile-nav" id="mobileNav">
-  <button class="mob-nav-btn active" id="mn-dashboard" onclick="showPage('dashboard',this,true)"><span>📊</span>Dashboard</button>
-  <button class="mob-nav-btn" id="mn-jobs" onclick="showPage('jobs',this,true)"><span>✍️</span>Catat</button>
-  <button class="mob-nav-btn" id="mn-records" onclick="showPage('records',this,true)"><span>📋</span>Riwayat</button>
-  <button class="mob-nav-btn" id="mn-mitra" onclick="showPage('mitra',this,true)"><span>🤝</span>Mitra</button>
-  <button class="mob-nav-btn" id="mn-leaderboard" onclick="showPage('leaderboard',this,true)"><span>🏆</span>Ranking</button>
-</nav>
-
-<!-- TOAST -->
-<div class="toast" id="toast">
-  <span class="toast-icon" id="toastIcon">✅</span>
-  <span id="toastMsg">Berhasil!</span>
-</div>
-
-<!-- MODAL CONFIRM DELETE -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal-box">
-    <div class="modal-title" id="modalTitle">Konfirmasi Hapus</div>
-    <div class="modal-sub" id="modalSub">Apakah Anda yakin ingin menghapus data ini?</div>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeModal()">Batal</button>
-      <button class="modal-confirm" id="modalConfirmBtn">Ya, Hapus</button>
-    </div>
-  </div>
-</div>
-
-<script>
-/* ========================================
-   STATE & DATA
-======================================== */
-let currentRole = 'admin'; // 'admin' | 'viewer'
-let currentRating = 0;
-let lbFilter = 'all';
-let modalCallback = null;
-let editingIndex = null;
-
-const RATE = 400; // EGP per hour
-
-// Mitra list
-let mitra = [
-  { id: 1, name: 'Ahmad', spec: 'AC & Elektronik', active: true },
-  { id: 2, name: 'Bilal', spec: 'Karpet & Sofa', active: true },
-  { id: 3, name: 'Kareem', spec: 'Umum & Deep Clean', active: false },
-];
-
-// Job records
-let jobs = [];
-
-// Inventory
-let inventory = [
-  { name: 'Microfiber Cloth', emoji: '🧽', max: 30, current: 28 },
-  { name: 'Spray Bottle', emoji: '🧴', max: 10, current: 8 },
-  { name: 'Cairan Pembersih', emoji: '🫧', max: 5, current: 3 },
-  { name: 'Sarung Tangan', emoji: '🧤', max: 20, current: 12 },
-  { name: 'Mop Pad', emoji: '🪣', max: 8, current: 2 },
-  { name: 'Sikat Toilet', emoji: '🚽', max: 6, current: 5 },
-];
-
-let mitraIdCounter = 10;
-
-/* ========================================
-   NAVIGATION
-======================================== */
-function showPage(page, btn, isMobile = false) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-
-  if (!isMobile) {
-    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-  } else {
-    document.querySelectorAll('.mob-nav-btn').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-  }
-
-  // Sync both navs
-  const pageMap = { dashboard: 0, jobs: 1, records: 2, mitra: 3, leaderboard: 4 };
-  const idx = pageMap[page];
-  document.querySelectorAll('.nav-tab')[idx]?.classList.add('active');
-  document.querySelectorAll('.mob-nav-btn')[idx]?.classList.add('active');
-
-  // Page-specific refreshes
-  if (page === 'dashboard') refreshDashboard();
-  if (page === 'records') { renderRecords(); refreshFilterOptions(); }
-  if (page === 'mitra') renderMitra();
-  if (page === 'leaderboard') renderLeaderboard();
-  if (page === 'jobs') refreshWorkerDropdown();
-}
-
-/* ========================================
-   ROLE TOGGLE
-======================================== */
-function toggleRole() {
-  currentRole = currentRole === 'admin' ? 'viewer' : 'admin';
-  const btn = document.getElementById('roleToggle');
-  btn.textContent = currentRole === 'admin' ? '👑 Admin' : '👁️ Viewer';
-  btn.className = currentRole === 'admin' ? 'role-badge' : 'role-badge viewer';
-
-  // Show/hide viewer notices
-  document.getElementById('viewerJobNotice').style.display = currentRole === 'viewer' ? 'flex' : 'none';
-  document.getElementById('viewerMitraNotice').style.display = currentRole === 'viewer' ? 'flex' : 'none';
-  document.getElementById('jobFormCard').style.opacity = currentRole === 'viewer' ? '0.5' : '1';
-  document.getElementById('jobFormCard').style.pointerEvents = currentRole === 'viewer' ? 'none' : 'all';
-  document.getElementById('addMitraForm').style.display = currentRole === 'viewer' ? 'none' : 'block';
-
-  showToast(currentRole === 'admin' ? '👑 Mode Admin aktif' : '👁️ Mode Viewer aktif', '✦');
-}
-
-/* ========================================
-   WORKER DROPDOWN
-======================================== */
-function refreshWorkerDropdown() {
-  const sel = document.getElementById('workerSelect');
-  const current = sel.value;
-  sel.innerHTML = '<option value="Owner">👑 Owner</option>';
-  mitra.filter(m => m.active).forEach(m => {
-    const opt = document.createElement('option');
-    opt.value = m.name;
-    opt.textContent = '🤝 ' + m.name;
-    sel.appendChild(opt);
-  });
-  if ([...sel.options].some(o => o.value === current)) sel.value = current;
-  handleWorkerChange();
-}
-
-function handleWorkerChange() {
-  const isOwner = document.getElementById('workerSelect').value === 'Owner';
-  document.getElementById('expenseSection').style.display = isOwner ? 'block' : 'none';
-  document.getElementById('previewMitraShare').style.display = isOwner ? 'none' : 'flex';
-  document.getElementById('previewCompanyShare').style.display = isOwner ? 'none' : 'flex';
-  document.getElementById('previewOwnerNet').style.display = isOwner ? 'flex' : 'none';
-  calcPreview();
-}
-
-/* ========================================
-   RATING
-======================================== */
-function setRating(val) {
-  currentRating = val;
-  document.querySelectorAll('.star-btn').forEach((b, i) => {
-    b.classList.toggle('active', i < val);
-  });
-  const labels = ['','⭐ Buruk','⭐⭐ Kurang','⭐⭐⭐ Cukup','⭐⭐⭐⭐ Bagus','⭐⭐⭐⭐⭐ Sempurna'];
-  document.getElementById('ratingLabel').textContent = labels[val];
-}
-
-/* ========================================
-   EXPENSE CALC
-======================================== */
-function calcExpenses() {
-  const vals = ['expSabun','expSponge','expTransport','expKimia','expLain']
-    .map(id => parseFloat(document.getElementById(id).value) || 0);
-  const total = vals.reduce((a,b) => a+b, 0);
-  document.getElementById('expTotal').textContent = 'EGP ' + total.toLocaleString('id-ID', {minimumFractionDigits:0, maximumFractionDigits:2});
-  calcPreview();
-}
-
-function getExpenseTotal() {
-  return ['expSabun','expSponge','expTransport','expKimia','expLain']
-    .reduce((sum, id) => sum + (parseFloat(document.getElementById(id).value) || 0), 0);
-}
-
-/* ========================================
-   LIVE PREVIEW
-======================================== */
-function calcPreview() {
-  const h = parseFloat(document.getElementById('jobHours').value) || 0;
-  const m = parseFloat(document.getElementById('jobMinutes').value) || 0;
-  const wage = (h + m/60) * RATE;
-  const isOwner = document.getElementById('workerSelect').value === 'Owner';
-
-  document.getElementById('previewWage').textContent = 'EGP ' + wage.toFixed(2);
-
-  if (!isOwner) {
-    document.getElementById('previewMitraVal').textContent = 'EGP ' + (wage * 0.8).toFixed(2);
-    document.getElementById('previewCompanyVal').textContent = 'EGP ' + (wage * 0.2).toFixed(2);
-  } else {
-    const cogs = getExpenseTotal();
-    document.getElementById('previewOwnerNetVal').textContent = 'EGP ' + (wage - cogs).toFixed(2);
-  }
-}
-
-// Wire up live preview to inputs
-['jobHours','jobMinutes'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => { calcPreview(); calcExpenses(); });
-});
-
-/* ========================================
-   JOB FORM SUBMIT
-======================================== */
-document.getElementById('jobForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-
-  const worker = document.getElementById('workerSelect').value;
-  const date = document.getElementById('jobDate').value;
-  const area = document.getElementById('jobArea').value.trim();
-  const hours = parseFloat(document.getElementById('jobHours').value) || 0;
-  const mins = parseFloat(document.getElementById('jobMinutes').value) || 0;
-
-  if (!date) { showToast('⚠️ Pilih tanggal terlebih dahulu!', '⚠️'); return; }
-  if (!area) { showToast('⚠️ Isi daerah customer!', '⚠️'); return; }
-  if (hours === 0 && mins === 0) { showToast('⚠️ Durasi kerja tidak boleh 0!', '⚠️'); return; }
-  if (currentRating === 0) { showToast('⚠️ Beri rating quality score!', '⚠️'); return; }
-
-  const wage = (hours + mins/60) * RATE;
-  const isOwner = worker === 'Owner';
-  const cogs = isOwner ? getExpenseTotal() : 0;
-
-  const job = {
-    id: Date.now(),
-    worker,
-    date,
-    area,
-    hours,
-    mins,
-    wage,
-    isOwner,
-    cogs,
-    expSabun: isOwner ? (parseFloat(document.getElementById('expSabun').value)||0) : 0,
-    expSponge: isOwner ? (parseFloat(document.getElementById('expSponge').value)||0) : 0,
-    expTransport: isOwner ? (parseFloat(document.getElementById('expTransport').value)||0) : 0,
-    expKimia: isOwner ? (parseFloat(document.getElementById('expKimia').value)||0) : 0,
-    expLain: isOwner ? (parseFloat(document.getElementById('expLain').value)||0) : 0,
-    mitraShare: isOwner ? 0 : wage * 0.8,
-    companyShare: isOwner ? wage : wage * 0.2,
-    netProfit: isOwner ? wage - cogs : wage * 0.8,
-    rating: currentRating,
-    timestamp: Date.now()
-  };
-
-  if (editingIndex !== null) {
-    jobs[editingIndex] = job;
-    editingIndex = null;
-    showToast('✅ Data berhasil diperbarui!', '✅');
-  } else {
-    jobs.unshift(job);
-    // Decrease inventory
-    inventory.forEach(inv => { if (inv.current > 0) inv.current = Math.max(0, inv.current - 1); });
-    showToast('✅ Pekerjaan berhasil dicatat!', '✅');
-  }
-
-  // Reset form
-  this.reset();
-  setRating(0);
-  currentRating = 0;
-  document.getElementById('ratingLabel').textContent = 'Belum diberi rating';
-  calcPreview();
-  calcExpenses();
-  document.getElementById('expTotal').textContent = 'EGP 0';
-  document.getElementById('previewWage').textContent = 'EGP 0';
-  handleWorkerChange();
-
-  // Set today's date
-  document.getElementById('jobDate').value = new Date().toISOString().split('T')[0];
-  refreshDashboard();
-});
-
-// Set default date on load
-window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('jobDate').value = new Date().toISOString().split('T')[0];
-  refreshWorkerDropdown();
-  refreshDashboard();
-  renderMitra();
-  renderLeaderboard();
-  renderInventory();
-  renderWeeklyChart();
-  renderDonut();
-});
-
-/* ========================================
-   DASHBOARD REFRESH
-======================================== */
-function refreshDashboard() {
-  const ownerJobs = jobs.filter(j => j.isOwner);
-  const mitraJobs = jobs.filter(j => !j.isOwner);
-
-  const ownerGross = ownerJobs.reduce((s, j) => s + j.wage, 0);
-  const ownerCogs = ownerJobs.reduce((s, j) => s + j.cogs, 0);
-  const ownerNet = ownerGross - ownerCogs;
-
-  const mitraGross = mitraJobs.reduce((s, j) => s + j.wage, 0);
-  const mitraCut = mitraJobs.reduce((s, j) => s + j.companyShare, 0);
-
-  const totalGross = ownerGross + mitraGross;
-  const totalCompany = ownerNet + mitraCut;
-
-  const mitraAvgScore = mitraJobs.length > 0
-    ? (mitraJobs.reduce((s,j) => s + j.rating, 0) / mitraJobs.length).toFixed(1)
-    : '0.0';
-
-  document.getElementById('totalGrossDisplay').textContent = 'EGP ' + fmt(totalGross);
-  document.getElementById('netCompanyDisplay').textContent = 'EGP ' + fmt(totalCompany);
-  document.getElementById('totalJobsDisplay').textContent = jobs.length;
-
-  document.getElementById('ownerGrossDisp').textContent = 'EGP ' + fmt(ownerGross);
-  document.getElementById('ownerNetDisp').textContent = 'EGP ' + fmt(ownerNet);
-  document.getElementById('ownerJobCount').textContent = ownerJobs.length + ' pekerjaan';
-  document.getElementById('ownerCogsDisp').textContent = 'COGS: EGP ' + fmt(ownerCogs);
-
-  document.getElementById('mitraGrossDisp').textContent = 'EGP ' + fmt(mitraGross);
-  document.getElementById('mitraCutDisp').textContent = 'EGP ' + fmt(mitraCut);
-  document.getElementById('mitraJobCount').textContent = mitraJobs.length + ' pekerjaan';
-  document.getElementById('mitraAvgScore').textContent = 'Avg: ' + mitraAvgScore + ' ⭐';
-
-  document.getElementById('donutOwnerVal').textContent = 'EGP ' + fmt(ownerNet);
-  document.getElementById('donutMitraVal').textContent = 'EGP ' + fmt(mitraCut);
-
-  renderInventory();
-  renderWeeklyChart();
-  renderDonut(ownerNet, mitraCut);
-}
-
-function fmt(n) {
-  return n.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-}
-
-/* ========================================
-   INVENTORY
-======================================== */
-function renderInventory() {
-  const grid = document.getElementById('inventoryGrid');
-  grid.innerHTML = inventory.map(inv => {
-    const pct = Math.round((inv.current / inv.max) * 100);
-    const cls = pct <= 25 ? 'low' : pct <= 50 ? 'mid' : '';
-    return `
-      <div class="glass-card inv-card">
-        <div class="inv-emoji">${inv.emoji}</div>
-        <div class="inv-name">${inv.name}</div>
-        <div class="inv-bar-wrap">
-          <div class="inv-bar-fill ${cls}" style="width:${pct}%"></div>
-        </div>
-        <div class="inv-count"><strong>${inv.current}</strong> / ${inv.max} unit${pct <= 25 ? ' ⚠️' : ''}</div>
-      </div>
-    `;
-  }).join('');
-}
-
-function resetInventory() {
-  inventory.forEach(inv => inv.current = inv.max);
-  renderInventory();
-  showToast('🔄 Stok inventory direset!', '✅');
-}
-
-/* ========================================
-   WEEKLY BAR CHART
-======================================== */
-function renderWeeklyChart() {
-  const chartEl = document.getElementById('weeklyChart');
-  const labelsEl = document.getElementById('weeklyLabels');
-
-  // Get last 8 weeks
-  const weeks = [];
-  const now = new Date();
-  for (let i = 7; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i * 7);
-    const start = new Date(d);
-    start.setDate(d.getDate() - d.getDay());
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    weeks.push({ start, end, label: `W${8-i}` });
-  }
-
-  const weekData = weeks.map(w => {
-    const wJobs = jobs.filter(j => {
-      const jd = new Date(j.date);
-      return jd >= w.start && jd <= w.end;
-    });
-    return {
-      label: w.label,
-      owner: wJobs.filter(j => j.isOwner).reduce((s,j) => s+j.wage, 0),
-      mitra: wJobs.filter(j => !j.isOwner).reduce((s,j) => s+j.wage, 0)
-    };
-  });
-
-  const maxVal = Math.max(...weekData.map(w => Math.max(w.owner, w.mitra)), 1);
-
-  chartEl.innerHTML = weekData.map(w => `
-    <div class="bar-group">
-      <div class="bar owner" style="height:${Math.round((w.owner/maxVal)*110)}px"
-        data-val="EGP ${fmt(w.owner)}"></div>
-      <div class="bar mitra" style="height:${Math.round((w.mitra/maxVal)*110)}px"
-        data-val="EGP ${fmt(w.mitra)}"></div>
-    </div>
-  `).join('');
-
-  labelsEl.innerHTML = weekData.map(w => `
-    <div class="bar-label" style="flex:1;text-align:center">${w.label}</div>
-  `).join('');
-}
-
-/* ========================================
-   DONUT CHART
-======================================== */
-function renderDonut(ownerVal = 0, mitraVal = 0) {
-  const total = ownerVal + mitraVal || 1;
-  const ownerPct = (ownerVal / total) * 100;
-  const mitraPct = 100 - ownerPct;
-  const circum = 100;
-
-  document.getElementById('donutOwner').setAttribute('stroke-dasharray', `${ownerPct} ${100 - ownerPct}`);
-  document.getElementById('donutOwner').setAttribute('stroke-dashoffset', '25');
-  document.getElementById('donutMitra').setAttribute('stroke-dasharray', `${mitraPct} ${100 - mitraPct}`);
-  document.getElementById('donutMitra').setAttribute('stroke-dashoffset', -(ownerPct - 25) + '');
-  document.getElementById('donutPct').textContent = Math.round(ownerPct) + '%';
-}
-
-/* ========================================
-   RECORDS TABLE
-======================================== */
-function renderRecords() {
-  const search = document.getElementById('searchInput').value.toLowerCase();
-  const filterW = document.getElementById('filterWorker').value;
-
-  let filtered = jobs.filter(j => {
-    const matchSearch = j.worker.toLowerCase().includes(search) || j.area.toLowerCase().includes(search);
-    const matchWorker = !filterW || j.worker === filterW;
-    return matchSearch && matchWorker;
-  });
-
-  const tbody = document.getElementById('recordsBody');
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><div class="empty-icon">📋</div><p>Tidak ada data yang cocok.</p></div></td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = filtered.map((j, i) => {
-    const durStr = `${j.hours}j ${j.mins}m`;
-    const stars = '⭐'.repeat(j.rating) + '☆'.repeat(5 - j.rating);
-    const workerClass = j.isOwner ? 'owner' : 'mitra';
-    const realIdx = jobs.indexOf(j);
-    return `
-      <tr>
-        <td style="color:var(--gray-3);font-weight:600">${i+1}</td>
-        <td><span class="worker-pill ${workerClass}">${j.isOwner ? '👑' : '🤝'} ${j.worker}</span></td>
-        <td style="font-weight:500">${formatDate(j.date)}</td>
-        <td>${j.area}</td>
-        <td style="font-weight:600">${durStr}</td>
-        <td style="font-weight:700">EGP ${fmt(j.wage)}</td>
-        <td style="color:#1A8A3E;font-weight:600">${j.isOwner ? '—' : 'EGP '+fmt(j.mitraShare)}</td>
-        <td style="color:var(--blue-1);font-weight:600">EGP ${fmt(j.companyShare)}</td>
-        <td style="color:#FF9500;font-weight:600">${j.isOwner ? 'EGP '+fmt(j.cogs) : '—'}</td>
-        <td style="font-weight:700">${j.isOwner ? 'EGP '+fmt(j.netProfit) : 'EGP '+fmt(j.mitraShare)}</td>
-        <td><span class="stars-display">${stars}</span></td>
-        <td>
-          <div class="action-btns">
-            ${currentRole === 'admin' ? `<button class="btn-edit" onclick="editJob(${realIdx})">✏️</button>
-            <button class="btn-danger" onclick="confirmDeleteJob(${realIdx})">🗑️</button>` : '<span style="font-size:11px;color:var(--gray-3)">Viewer</span>'}
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join('');
-}
-
-function formatDate(d) {
-  if (!d) return '—';
-  const dt = new Date(d + 'T00:00:00');
-  return dt.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
-}
-
-function refreshFilterOptions() {
-  const sel = document.getElementById('filterWorker');
-  const current = sel.value;
-  sel.innerHTML = '<option value="">Semua Pekerja</option>';
-  const workers = [...new Set(jobs.map(j => j.worker))];
-  workers.forEach(w => {
-    const opt = document.createElement('option');
-    opt.value = w; opt.textContent = w;
-    sel.appendChild(opt);
-  });
-  if ([...sel.options].some(o => o.value === current)) sel.value = current;
-}
-
-function editJob(idx) {
-  const j = jobs[idx];
-  editingIndex = idx;
-
-  document.getElementById('workerSelect').value = j.worker;
-  document.getElementById('jobDate').value = j.date;
-  document.getElementById('jobArea').value = j.area;
-  document.getElementById('jobHours').value = j.hours;
-  document.getElementById('jobMinutes').value = j.mins;
-  setRating(j.rating);
-
-  if (j.isOwner) {
-    document.getElementById('expSabun').value = j.expSabun || 0;
-    document.getElementById('expSponge').value = j.expSponge || 0;
-    document.getElementById('expTransport').value = j.expTransport || 0;
-    document.getElementById('expKimia').value = j.expKimia || 0;
-    document.getElementById('expLain').value = j.expLain || 0;
-  }
-
-  handleWorkerChange();
-  calcExpenses();
-  calcPreview();
-
-  showPage('jobs', document.querySelectorAll('.nav-tab')[1]);
-  showToast('✏️ Mode edit aktif — ubah data lalu simpan', '✏️');
-}
-
-function confirmDeleteJob(idx) {
-  openModal('Hapus Pekerjaan', 'Data pekerjaan ini akan dihapus permanen. Lanjutkan?', () => {
-    jobs.splice(idx, 1);
-    renderRecords();
-    refreshDashboard();
-    showToast('🗑️ Data dihapus!', '🗑️');
-  });
-}
-
-/* ========================================
-   MITRA MANAGEMENT
-======================================== */
-function addMitra() {
-  const name = document.getElementById('newMitraName').value.trim();
-  const spec = document.getElementById('newMitraSpec').value.trim();
-  if (!name) { showToast('⚠️ Nama mitra wajib diisi!', '⚠️'); return; }
-  mitra.push({ id: ++mitraIdCounter, name, spec: spec || 'Umum', active: true });
-  document.getElementById('newMitraName').value = '';
-  document.getElementById('newMitraSpec').value = '';
-  renderMitra();
-  refreshWorkerDropdown();
-  showToast('✅ Mitra ' + name + ' berhasil ditambahkan!', '✅');
-}
-
-function renderMitra() {
-  const grid = document.getElementById('mitraGrid');
-  if (mitra.length === 0) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">👥</div><p>Belum ada mitra terdaftar.</p></div>`;
-    return;
-  }
-  grid.innerHTML = mitra.map(m => {
-    const mJobs = jobs.filter(j => j.worker === m.name);
-    const totalHours = mJobs.reduce((s,j) => s + j.hours + j.mins/60, 0);
-    const avgRating = mJobs.length > 0 ? (mJobs.reduce((s,j) => s+j.rating,0)/mJobs.length).toFixed(1) : '0.0';
-    const totalEarn = mJobs.reduce((s,j) => s + j.mitraShare, 0);
-    const statusCls = m.active ? 'active' : 'tawaquf';
-    const statusTxt = m.active ? 'Aktif' : 'Tawaquf';
-    return `
-      <div class="glass-card mitra-card ${m.active ? '' : 'tawaquf'}" id="mcard-${m.id}">
-        <div class="mitra-avatar">${m.name.charAt(0)}</div>
-        <div class="mitra-name">${m.name}</div>
-        <div style="font-size:11px;color:var(--gray-2);margin-bottom:4px">${m.spec}</div>
-        <div class="mitra-status ${statusCls}">● ${statusTxt}</div>
-        <div class="mitra-stats">
-          <div class="mitra-stat-item">
-            <div class="mitra-stat-label">Total Jam</div>
-            <div class="mitra-stat-val">${totalHours.toFixed(1)}j</div>
-          </div>
-          <div class="mitra-stat-item">
-            <div class="mitra-stat-label">Avg Rating</div>
-            <div class="mitra-stat-val">${avgRating}⭐</div>
-          </div>
-          <div class="mitra-stat-item">
-            <div class="mitra-stat-label">Total Job</div>
-            <div class="mitra-stat-val">${mJobs.length}</div>
-          </div>
-          <div class="mitra-stat-item">
-            <div class="mitra-stat-label">Penghasilan</div>
-            <div class="mitra-stat-val" style="font-size:13px">EGP ${fmt(totalEarn)}</div>
-          </div>
-        </div>
-        ${currentRole === 'admin' ? `
-        <div class="mitra-card-actions">
-          <button class="toggle-btn ${m.active ? 'active' : 'paused'}" onclick="toggleMitraStatus(${m.id})">
-            ${m.active ? '⏸ Set Tawaquf' : '▶ Aktifkan'}
-          </button>
-          <button class="btn-danger" onclick="confirmRemoveMitra(${m.id})">🗑️</button>
-        </div>` : '<div style="font-size:11px;color:var(--gray-3);text-align:center;padding:8px 0">Mode Viewer</div>'}
-      </div>
-    `;
-  }).join('');
-}
-
-function toggleMitraStatus(id) {
-  const m = mitra.find(x => x.id === id);
-  if (!m) return;
-  m.active = !m.active;
-  renderMitra();
-  refreshWorkerDropdown();
-  showToast(`${m.active ? '▶ ' + m.name + ' diaktifkan' : '⏸ ' + m.name + ' set Tawaquf'}`, m.active ? '✅' : '⏸');
-}
-
-function confirmRemoveMitra(id) {
-  const m = mitra.find(x => x.id === id);
-  openModal('Hapus Mitra', `Mitra "${m?.name}" akan dihapus dari sistem. Lanjutkan?`, () => {
-    mitra = mitra.filter(x => x.id !== id);
-    renderMitra();
-    refreshWorkerDropdown();
-    showToast('🗑️ Mitra dihapus dari sistem!', '🗑️');
-  });
-}
-
-/* ========================================
-   LEADERBOARD
-======================================== */
-function setLBFilter(f, btn) {
-  lbFilter = f;
-  document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderLeaderboard();
-}
-
-function renderLeaderboard() {
-  const now = new Date();
-
-  const activeMitra = mitra.filter(m => m.active);
-  const lbData = activeMitra.map(m => {
-    let mJobs = jobs.filter(j => j.worker === m.name);
-
-    if (lbFilter === 'week') {
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - now.getDay());
-      weekStart.setHours(0,0,0,0);
-      mJobs = mJobs.filter(j => new Date(j.date + 'T00:00:00') >= weekStart);
-    } else if (lbFilter === 'month') {
-      mJobs = mJobs.filter(j => {
-        const jd = new Date(j.date + 'T00:00:00');
-        return jd.getMonth() === now.getMonth() && jd.getFullYear() === now.getFullYear();
-      });
-    }
-
-    const totalHours = mJobs.reduce((s,j) => s + j.hours + j.mins/60, 0);
-    const avgRating = mJobs.length > 0 ? mJobs.reduce((s,j)=>s+j.rating,0)/mJobs.length : 0;
-    const score = (totalHours * 0.6) + (avgRating * 0.4 * 10); // composite score
-    return { ...m, totalHours, avgRating, jobCount: mJobs.length, score, totalEarn: mJobs.reduce((s,j)=>s+j.mitraShare,0) };
-  }).sort((a,b) => b.score - a.score);
-
-  // Update summary
-  const totalHoursAll = lbData.reduce((s,m) => s + m.totalHours, 0);
-  const avgScoreAll = lbData.length > 0 ? lbData.reduce((s,m)=>s+(m.avgRating||0),0)/lbData.length : 0;
-  document.getElementById('lbActiveCnt').textContent = activeMitra.length;
-  const th = totalHoursAll;
-  document.getElementById('lbTotalHours').textContent = Math.floor(th) + 'j ' + Math.round((th % 1) * 60) + 'm';
-  document.getElementById('lbAvgScore').textContent = avgScoreAll.toFixed(1) + ' ⭐';
-
-  const list = document.getElementById('leaderboardList');
-  if (lbData.length === 0) {
-    list.innerHTML = `<div class="glass-card empty-state"><div class="empty-icon">🏆</div><p>Belum ada mitra aktif atau data pekerjaan.</p></div>`;
-    return;
-  }
-
-  const rankClasses = ['gold','silver','bronze'];
-  const rankEmojis = ['🥇','🥈','🥉'];
-  const maxScore = lbData[0]?.score || 1;
-
-  list.innerHTML = lbData.map((m, i) => `
-    <div class="glass-card rank-card fade-in" style="animation-delay:${i*0.08}s">
-      <div class="rank-num ${rankClasses[i] || ''}">${rankEmojis[i] || (i+1)}</div>
-      <div class="rank-avatar">${m.name.charAt(0)}</div>
-      <div class="rank-info">
-        <div class="rank-name">${m.name}</div>
-        <div class="rank-detail">${m.spec} · ${m.jobCount} pekerjaan · EGP ${fmt(m.totalEarn)}</div>
-        <div class="rank-bar-wrap">
-          <div class="rank-bar" style="width:${maxScore > 0 ? Math.round((m.score/maxScore)*100) : 0}%"></div>
-        </div>
-      </div>
-      <div class="rank-score-wrap">
-        <div class="rank-score">${m.totalHours.toFixed(1)}j</div>
-        <div class="rank-score-label">Total Jam</div>
-        <div style="font-size:13px;font-weight:600;color:var(--gray-2);margin-top:4px">${m.avgRating.toFixed(1)} ⭐ avg</div>
-      </div>
-    </div>
-  `).join('');
-}
-
-/* ========================================
-   MODAL
-======================================== */
-function openModal(title, sub, cb) {
-  document.getElementById('modalTitle').textContent = title;
-  document.getElementById('modalSub').textContent = sub;
-  document.getElementById('modalOverlay').classList.add('open');
-  modalCallback = cb;
-  document.getElementById('modalConfirmBtn').onclick = () => { if(cb) cb(); closeModal(); };
-}
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('open');
-  modalCallback = null;
-}
-document.getElementById('modalOverlay').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
-});
-
-/* ========================================
-   TOAST
-======================================== */
-let toastTimer;
-function showToast(msg, icon = '✅') {
-  const t = document.getElementById('toast');
-  const ti = document.getElementById('toastIcon');
-  const tm = document.getElementById('toastMsg');
-  ti.textContent = icon;
-  tm.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-/* ========================================
-   PARALLAX SCROLL
-======================================== */
-let lastScroll = 0;
-window.addEventListener('scroll', () => {
-  const scrollY = window.pageYOffset;
-  const blobs = document.querySelectorAll('.parallax-blob');
-  blobs.forEach((b, i) => {
-    const speed = [0.3, 0.5, 0.2][i] || 0.3;
-    b.style.transform = `translateY(${scrollY * speed}px)`;
-  });
-  const props = document.querySelectorAll('.prop-3d');
-  props.forEach((p, i) => {
-    const speed = [0.15, 0.25, 0.2, 0.1][i] || 0.15;
-    p.style.transform = `translateY(${scrollY * speed}px)`;
-  });
-}, { passive: true });
-
-/* ========================================
-   INITIAL SEED DATA (Demo)
-======================================== */
-(function seedData() {
-  const today = new Date();
-  const daysAgo = (n) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - n);
-    return d.toISOString().split('T')[0];
-  };
-
-  const seed = [
-    { worker:'Owner', date:daysAgo(2), area:'Nasr City', hours:3, mins:30, rating:5, cogs:{sabun:20,sponge:15,transport:30,kimia:10,lain:5} },
-    { worker:'Ahmad', date:daysAgo(3), area:'Zamalek', hours:2, mins:0, rating:4, cogs:{} },
-    { worker:'Bilal', date:daysAgo(5), area:'Heliopolis', hours:4, mins:15, rating:5, cogs:{} },
-    { worker:'Owner', date:daysAgo(7), area:'Maadi', hours:2, mins:45, rating:4, cogs:{sabun:15,sponge:0,transport:25,kimia:20,lain:0} },
-    { worker:'Ahmad', date:daysAgo(10), area:'Dokki', hours:3, mins:0, rating:3, cogs:{} },
-    { worker:'Kareem', date:daysAgo(12), area:'6th October', hours:5, mins:0, rating:5, cogs:{} },
-    { worker:'Bilal', date:daysAgo(14), area:'New Cairo', hours:2, mins:30, rating:4, cogs:{} },
-    { worker:'Owner', date:daysAgo(20), area:'Agouza', hours:1, mins:45, rating:5, cogs:{sabun:10,sponge:10,transport:20,kimia:5,lain:0} },
-  ];
-
-  seed.forEach(s => {
-    const wage = (s.hours + s.mins/60) * RATE;
-    const isOwner = s.worker === 'Owner';
-    const totalCogs = isOwner ? Object.values(s.cogs).reduce((a,b)=>a+b,0) : 0;
-    jobs.push({
-      id: Date.now() + Math.random(),
-      worker: s.worker,
-      date: s.date,
-      area: s.area,
-      hours: s.hours,
-      mins: s.mins,
-      wage,
-      isOwner,
-      cogs: totalCogs,
-      expSabun: s.cogs.sabun||0,
-      expSponge: s.cogs.sponge||0,
-      expTransport: s.cogs.transport||0,
-      expKimia: s.cogs.kimia||0,
-      expLain: s.cogs.lain||0,
-      mitraShare: isOwner ? 0 : wage * 0.8,
-      companyShare: isOwner ? wage : wage * 0.2,
-      netProfit: isOwner ? wage - totalCogs : wage * 0.8,
-      rating: s.rating,
-      timestamp: Date.now()
-    });
-  });
-})();
-
-</script>
+            
+            <table class="data-table" id="mitra-table">
+                <thead>
+                    <tr>
+                        <th>Nama Mitra</th>
+                        <th>Status</th>
+                        <th>Mode Tawaquf</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </section>
+
+        <section class="glass-card">
+            <h3>Leaderboard Mingguan</h3>
+            <p style="font-size: 14px; color: var(--color-ash); margin-bottom: 16px;">Ranking berdasarkan Total Jam Kerja & Rata-rata Quality Score.</p>
+            <table class="data-table" id="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Nama</th>
+                        <th>Total Waktu (Jam)</th>
+                        <th>Avg Quality Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </section>
+
+    </main>
+
+    <script>
+        // State Management
+        let state = {
+            rate: 400,
+            inventory: 50,
+            grossRevenue: 0,
+            netRevenue: 0,
+            mitras: [
+                { id: 1, name: 'Tariq', isTawaquf: false },
+                { id: 2, name: 'Hassan', isTawaquf: true }
+            ],
+            jobs: []
+        };
+
+        // DOM Elements
+        const grossEl = document.getElementById('gross-revenue');
+        const netEl = document.getElementById('net-revenue');
+        const invEl = document.getElementById('inventory-count');
+        const workerSelect = document.getElementById('worker-select');
+        const expenseGroup = document.getElementById('owner-expenses-group');
+        const jobForm = document.getElementById('job-form');
+
+        // Initialize App
+        function init() {
+            document.getElementById('job-date').valueAsDate = new Date();
+            renderMitras();
+            updateDashboard();
+            renderLeaderboard();
+        }
+
+        // Toggle form fields based on worker selection
+        function toggleOwnerFields() {
+            if (workerSelect.value === 'Owner') {
+                expenseGroup.style.display = 'block';
+            } else {
+                expenseGroup.style.display = 'none';
+                document.getElementById('job-expenses').value = '';
+            }
+        }
+
+        // Add Job Submission
+        jobForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const worker = workerSelect.value;
+            const hours = parseInt(document.getElementById('job-hours').value) || 0;
+            const minutes = parseInt(document.getElementById('job-minutes').value) || 0;
+            const rating = parseFloat(document.getElementById('job-rating').value) || 5;
+            const expenses = parseFloat(document.getElementById('job-expenses').value) || 0;
+
+            // Logic: Total Wage = (Jam + Menit/60) * 400
+            const timeInHours = hours + (minutes / 60);
+            const totalWage = timeInHours * state.rate;
+            
+            let gross = totalWage;
+            let netToCompany = 0;
+
+            if (worker === 'Owner') {
+                // Owner: 100% to company minus expenses
+                netToCompany = totalWage - expenses;
+            } else {
+                // Mitra: 20% to company, Mitra keeps 80% (expenses borne by Mitra, so we ignore it here)
+                netToCompany = totalWage * 0.20;
+            }
+
+            // Save job data
+            const job = {
+                worker,
+                timeInHours,
+                totalWage,
+                netToCompany,
+                rating
+            };
+            state.jobs.push(job);
+
+            // Update Financials
+            state.grossRevenue += gross;
+            state.netRevenue += netToCompany;
+
+            // Reduce Inventory
+            if (state.inventory > 0) state.inventory -= 1;
+
+            updateDashboard();
+            renderLeaderboard();
+            resetForm();
+            alert('Data Pekerjaan berhasil disimpan!');
+        });
+
+        function resetForm() {
+            jobForm.reset();
+            document.getElementById('job-date').valueAsDate = new Date();
+            workerSelect.value = 'Owner';
+            toggleOwnerFields();
+        }
+
+        // Dashboard Rendering
+        function updateDashboard() {
+            // Format EGP currency
+            const formatter = new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP' });
+            grossEl.innerText = formatter.format(state.grossRevenue);
+            netEl.innerText = formatter.format(state.netRevenue);
+            invEl.innerText = state.inventory;
+        }
+
+        // Mitra Management
+        function renderMitras() {
+            const tbody = document.querySelector('#mitra-table tbody');
+            tbody.innerHTML = '';
+            workerSelect.innerHTML = '<option value="Owner">Owner</option>';
+
+            state.mitras.forEach(mitra => {
+                // Populate Dropdown
+                if (!mitra.isTawaquf) {
+                    workerSelect.innerHTML += `<option value="${mitra.name}">${mitra.name}</option>`;
+                }
+
+                // Populate Table
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${mitra.name}</td>
+                    <td>
+                        <span class="badge ${mitra.isTawaquf ? 'badge-tawaquf' : 'badge-active'}">
+                            ${mitra.isTawaquf ? 'Jeda/Tawaquf' : 'Aktif'}
+                        </span>
+                    </td>
+                    <td>
+                        <label class="toggle-switch">
+                            <input type="checkbox" ${mitra.isTawaquf ? 'checked' : ''} onchange="toggleTawaquf(${mitra.id})">
+                            <span class="slider"></span>
+                        </label>
+                    </td>
+                    <td>
+                        <button class="btn-danger" onclick="removeMitra(${mitra.id})">Remove</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            toggleOwnerFields();
+        }
+
+        function addMitra() {
+            const nameInput = document.getElementById('new-mitra-name');
+            const name = nameInput.value.trim();
+            if (!name) return alert('Nama mitra tidak boleh kosong!');
+            
+            const newId = state.mitras.length > 0 ? Math.max(...state.mitras.map(m => m.id)) + 1 : 1;
+            state.mitras.push({ id: newId, name: name, isTawaquf: false });
+            nameInput.value = '';
+            renderMitras();
+        }
+
+        function removeMitra(id) {
+            if(confirm('Yakin ingin menghapus mitra ini?')) {
+                state.mitras = state.mitras.filter(m => m.id !== id);
+                renderMitras();
+                renderLeaderboard();
+            }
+        }
+
+        function toggleTawaquf(id) {
+            const mitra = state.mitras.find(m => m.id === id);
+            if(mitra) {
+                mitra.isTawaquf = !mitra.isTawaquf;
+                renderMitras();
+            }
+        }
+
+        // Leaderboard Calculation
+        function renderLeaderboard() {
+            const tbody = document.querySelector('#leaderboard-table tbody');
+            tbody.innerHTML = '';
+
+            let stats = {};
+
+            // Aggregate data
+            state.jobs.forEach(job => {
+                if (!stats[job.worker]) {
+                    stats[job.worker] = { name: job.worker, totalHours: 0, totalRating: 0, jobCount: 0 };
+                }
+                stats[job.worker].totalHours += job.timeInHours;
+                stats[job.worker].totalRating += job.rating;
+                stats[job.worker].jobCount += 1;
+            });
+
+            // Calculate Avg & convert to Array
+            let rankData = Object.values(stats).map(s => {
+                s.avgRating = (s.totalRating / s.jobCount).toFixed(1);
+                return s;
+            });
+
+            // Sort: Total Hours DESC, then Avg Rating DESC
+            rankData.sort((a, b) => {
+                if (b.totalHours === a.totalHours) {
+                    return b.avgRating - a.avgRating;
+                }
+                return b.totalHours - a.totalHours;
+            });
+
+            if (rankData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--color-ash);">Belum ada data pekerjaan</td></tr>';
+                return;
+            }
+
+            rankData.forEach((data, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight: 600; color: var(--color-apple-blue);">#${index + 1}</td>
+                    <td>${data.name}</td>
+                    <td>${data.totalHours.toFixed(1)} Jam</td>
+                    <td>&#11088; ${data.avgRating}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Run
+        window.onload = init;
+    </script>
 </body>
 </html>
