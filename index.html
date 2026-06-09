@@ -1,486 +1,198 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pristine Management Portal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .toggle-checkbox:checked { right: 0; border-color: #2563EB; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #2563EB; }
-        .toggle-checkbox:checked + .toggle-label:after { transform: translateX(100%); border-color: white; }
-    </style>
-</head>
-<body class="flex h-screen overflow-hidden text-gray-800">
+import { useState, useCallback } from 'react';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import Dashboard from './components/Dashboard';
+import JobsPage from './components/JobsPage';
+import PartnersPage from './components/PartnersPage';
+import LeaderboardPage from './components/LeaderboardPage';
+import SettingsPage from './components/SettingsPage';
+import { JobEntry, Mitra } from './types';
+import { initialMitras, initialJobs } from './data';
 
-    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col justify-between hidden md:flex">
-        <div>
-            <div class="p-6">
-                <h1 class="text-xl font-bold text-blue-700">Pristine Management</h1>
-                <p class="text-xs text-gray-500 mt-1">Owner Portal</p>
+type Page = 'dashboard' | 'jobs' | 'partners' | 'leaderboard' | 'settings';
+
+function genId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+export default function App() {
+  const [page, setPage] = useState<Page>('dashboard');
+  const [role, setRole] = useState<'admin' | 'viewer'>('admin');
+  const [viewerMitraId, setViewerMitraId] = useState<string>('');
+  const [mitras, setMitras] = useState<Mitra[]>(initialMitras);
+  const [jobs, setJobs] = useState<JobEntry[]>(initialJobs);
+
+  // Navigation
+  const navigate = useCallback((p: string) => {
+    if (['dashboard', 'jobs', 'partners', 'leaderboard', 'settings', 'add-job'].includes(p)) {
+      if (p === 'add-job') {
+        setPage('jobs');
+      } else {
+        setPage(p as Page);
+      }
+    }
+  }, []);
+
+  // Role switching
+  const handleRoleSwitch = () => {
+    if (role === 'admin') {
+      setRole('viewer');
+      setViewerMitraId(mitras[0]?.id || '');
+      setPage('dashboard');
+    } else {
+      setRole('admin');
+      setViewerMitraId('');
+    }
+  };
+
+  const handleViewerSelect = (mitraId: string) => {
+    setRole('viewer');
+    setViewerMitraId(mitraId);
+    setPage('dashboard');
+  };
+
+  // Job CRUD
+  const handleAddJob = (data: Omit<JobEntry, 'id'>) => {
+    setJobs((prev) => [{ ...data, id: genId() }, ...prev]);
+  };
+
+  const handleEditJob = (updated: JobEntry) => {
+    setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
+  };
+
+  const handleDeleteJob = (id: string) => {
+    setJobs((prev) => prev.filter((j) => j.id !== id));
+  };
+
+  // Mitra CRUD
+  const handleAddMitra = (data: Omit<Mitra, 'id'>) => {
+    setMitras((prev) => [...prev, { ...data, id: genId() }]);
+  };
+
+  const handleEditMitra = (updated: Mitra) => {
+    setMitras((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+  };
+
+  const handleDeleteMitra = (id: string) => {
+    setMitras((prev) => prev.filter((m) => m.id !== id));
+    setJobs((prev) => prev.filter((j) => j.workerId !== id));
+  };
+
+  const handleToggleStatus = (id: string) => {
+    setMitras((prev) =>
+      prev.map((m) =>
+        m.id === id ? { ...m, status: m.status === 'active' ? 'tawaquf' : 'active' } : m
+      )
+    );
+  };
+
+  const viewerMitra = mitras.find((m) => m.id === viewerMitraId);
+
+  const renderPage = () => {
+    switch (page) {
+      case 'dashboard':
+        return (
+          <Dashboard
+            jobs={jobs}
+            mitras={mitras}
+            role={role}
+            viewerMitraId={viewerMitraId}
+            onNavigate={navigate}
+          />
+        );
+      case 'jobs':
+        return (
+          <JobsPage
+            jobs={jobs}
+            mitras={mitras}
+            role={role}
+            viewerMitraId={viewerMitraId}
+            onAddJob={handleAddJob}
+            onEditJob={handleEditJob}
+            onDeleteJob={handleDeleteJob}
+          />
+        );
+      case 'partners':
+        return role === 'admin' ? (
+          <PartnersPage
+            mitras={mitras}
+            jobs={jobs}
+            role={role}
+            onAddMitra={handleAddMitra}
+            onEditMitra={handleEditMitra}
+            onDeleteMitra={handleDeleteMitra}
+            onToggleStatus={handleToggleStatus}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-64">
+            <p className="text-gray-400">Access denied – Admin only</p>
+          </div>
+        );
+      case 'leaderboard':
+        return <LeaderboardPage jobs={jobs} mitras={mitras} />;
+      case 'settings':
+        return role === 'admin' ? (
+          <SettingsPage />
+        ) : (
+          <div className="flex items-center justify-center h-64">
+            <p className="text-gray-400">Access denied – Admin only</p>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <Sidebar
+        activePage={page}
+        onNavigate={navigate}
+        role={role}
+        onRoleSwitch={handleRoleSwitch}
+      />
+
+      {/* Main Content */}
+      <div className="flex-1 ml-52 flex flex-col min-h-screen">
+        <Header
+          role={role}
+          viewerMitra={viewerMitra}
+          mitras={mitras}
+          onRoleSwitch={handleRoleSwitch}
+          onViewerSelect={handleViewerSelect}
+        />
+
+        {/* Page Content */}
+        <main className="flex-1 p-6">
+          {/* Role Banner */}
+          {role === 'viewer' && (
+            <div className="mb-4 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${viewerMitra?.avatarColor || 'bg-gray-400'}`}>
+                  {viewerMitra?.avatarInitials || 'VW'}
+                </div>
+                <p className="text-sm text-amber-700 font-medium">
+                  Viewer Mode – Viewing as:{' '}
+                  <strong>{viewerMitra?.name || 'Mitra'}</strong>
+                  {viewerMitra?.status === 'tawaquf' && (
+                    <span className="ml-2 text-xs bg-amber-200 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
+                      Tawaquf
+                    </span>
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={handleRoleSwitch}
+                className="text-xs text-amber-600 font-semibold hover:underline"
+              >
+                Switch to Admin →
+              </button>
             </div>
-            <nav class="mt-4 px-4 space-y-2">
-                <a href="#" class="flex items-center space-x-3 text-blue-600 bg-blue-50 px-4 py-2.5 rounded-lg font-medium">
-                    <i class="ph ph-squares-four text-xl"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="#" class="flex items-center space-x-3 text-gray-600 hover:bg-gray-50 px-4 py-2.5 rounded-lg font-medium">
-                    <i class="ph ph-briefcase text-xl"></i>
-                    <span>Jobs</span>
-                </a>
-                <a href="#" class="flex items-center space-x-3 text-gray-600 hover:bg-gray-50 px-4 py-2.5 rounded-lg font-medium">
-                    <i class="ph ph-users text-xl"></i>
-                    <span>Partners</span>
-                </a>
-                <a href="#" class="flex items-center space-x-3 text-gray-600 hover:bg-gray-50 px-4 py-2.5 rounded-lg font-medium">
-                    <i class="ph ph-chart-bar text-xl"></i>
-                    <span>Leaderboard</span>
-                </a>
-            </nav>
-        </div>
-        <div class="p-4 space-y-2">
-            <button onclick="openJobModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition flex justify-center items-center gap-2">
-                <i class="ph ph-plus-circle text-lg"></i> Add New Job
-            </button>
-            <div class="pt-4 mt-4 border-t border-gray-100 space-y-2">
-                <a href="#" class="flex items-center space-x-3 text-gray-600 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm">
-                    <i class="ph ph-question text-lg"></i><span>Support</span>
-                </a>
-                <a href="#" class="flex items-center space-x-3 text-gray-600 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm">
-                    <i class="ph ph-sign-out text-lg"></i><span>Logout</span>
-                </a>
-            </div>
-        </div>
-    </aside>
-
-    <main class="flex-1 flex flex-col h-full overflow-y-auto">
-        <header class="bg-gray-50/80 backdrop-blur-sm sticky top-0 z-10 px-8 py-5 flex justify-between items-center">
-            <div>
-                <h2 class="text-2xl font-bold text-gray-800">Morning, Admin</h2>
-                <p class="text-sm text-gray-500">Here's what's happening today.</p>
-            </div>
-            <div class="flex items-center space-x-4">
-                <div class="relative hidden sm:block">
-                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" placeholder="Search data..." class="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:border-blue-500 w-64">
-                </div>
-                <button class="p-2 bg-white rounded-full border border-gray-200 hover:bg-gray-50">
-                    <i class="ph ph-bell text-gray-600"></i>
-                </button>
-                <div class="h-10 w-10 rounded-full bg-blue-800 text-white flex items-center justify-center font-bold">
-                    A
-                </div>
-            </div>
-        </header>
-
-        <div class="p-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <div class="lg:col-span-2 space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
-                        <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded">SYSTEM HEALTH: OPTIMAL</span>
-                        <h3 class="text-2xl font-bold mt-4 mb-2">Pristine<br>Performance<br>Overview</h3>
-                        <p class="text-sm text-gray-500 mb-6 max-w-[60%]">Your cleaning services are monitored with precise 400 EGP/hr calculations.</p>
-                        <div class="flex space-x-6">
-                            <div>
-                                <p class="text-xs text-gray-400 font-medium">Total Gross (All)</p>
-                                <p class="text-xl font-bold text-gray-800" id="dashGross">EGP 0</p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-blue-400 font-medium">Company Net Profit</p>
-                                <p class="text-xl font-bold text-blue-600" id="dashNet">EGP 0</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-6">
-                        <div class="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
-                            <div class="flex justify-between items-center mb-2">
-                                <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i class="ph ph-trend-up"></i></div>
-                                <span class="text-xs font-bold text-blue-600">Company Revenue</span>
-                            </div>
-                            <p class="text-sm text-gray-500">Gross Intake</p>
-                            <h4 class="text-2xl font-bold text-blue-700" id="statGross">EGP 0</h4>
-                        </div>
-                        <div class="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 relative">
-                            <div class="flex justify-between items-center mb-2">
-                                <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i class="ph ph-wallet"></i></div>
-                                <span class="text-xs font-bold text-blue-600">Net Margin</span>
-                            </div>
-                            <p class="text-sm text-gray-500">Net Company Earnings</p>
-                            <h4 class="text-2xl font-bold text-blue-700" id="statNet">EGP 0</h4>
-                            <p class="text-xs text-gray-400 mt-1">(20% Mitra + Net Owner)</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
-                    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-                        <h3 class="text-lg font-bold">Partner Network</h3>
-                        <button onclick="openPartnerModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                            Add Partner
-                        </button>
-                    </div>
-                    <div class="p-0 overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider">
-                                    <th class="p-4 font-semibold">Partner Name</th>
-                                    <th class="p-4 font-semibold">Role</th>
-                                    <th class="p-4 font-semibold">Status</th>
-                                    <th class="p-4 font-semibold">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="partnerTableBody" class="text-sm divide-y divide-gray-100">
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-bold">Leaderboard</h3>
-                        <span class="text-xs font-bold text-blue-600">ALL TIME</span>
-                    </div>
-                    <div id="leaderboardList" class="space-y-4">
-                        </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="text-lg font-bold mb-4">Recent Activities</h3>
-                    <div class="relative border-l-2 border-gray-100 ml-3 space-y-6">
-                        <div class="pl-4 relative">
-                            <div class="absolute w-3 h-3 bg-blue-600 rounded-full -left-[7px] top-1"></div>
-                            <p class="text-sm font-semibold">System Initialization</p>
-                            <p class="text-xs text-gray-400">Rules applied: 400 EGP/hr</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </main>
-
-    <div id="jobModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold">Add New Job Entry</h3>
-                <button onclick="closeModals()" class="text-gray-400 hover:text-gray-600"><i class="ph ph-x text-xl"></i></button>
-            </div>
-            <form id="jobForm" onsubmit="submitJob(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Worker Name</label>
-                    <select id="jobWorker" onchange="toggleExpenses()" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" required>
-                        </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                    <input type="date" id="jobDate" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Customer Area</label>
-                    <select id="jobArea" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none" required>
-                        <option value="Darrasah">Darrasah</option>
-                        <option value="Sabi">Sabi</option>
-                        <option value="Asyir">Asyir</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Hours</label>
-                        <input type="number" id="jobHours" min="0" value="0" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none" required>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Minutes</label>
-                        <input type="number" id="jobMinutes" min="0" max="59" value="0" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none" required>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Quality Score (Stars)</label>
-                    <input type="number" id="jobRating" min="1" max="5" step="0.1" value="5" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none" required>
-                </div>
-                
-                <div id="expenseField" class="hidden p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Owner Expenses (COGS) in EGP</label>
-                    <p class="text-xs text-gray-500 mb-2">Cost for materials (Soap, Sponge, Transport).</p>
-                    <input type="number" id="jobExpenses" min="0" value="0" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none">
-                </div>
-
-                <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="closeModals()" class="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-200">Cancel</button>
-                    <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700">Save Job</button>
-                </div>
-            </form>
-        </div>
+          )}
+          {renderPage()}
+        </main>
+      </div>
     </div>
-
-    <div id="partnerModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold">Add New Partner</h3>
-                <button onclick="closeModals()" class="text-gray-400 hover:text-gray-600"><i class="ph ph-x text-xl"></i></button>
-            </div>
-            <form onsubmit="submitPartner(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Partner Name</label>
-                    <input type="text" id="partnerName" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none" required>
-                </div>
-                <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="closeModals()" class="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-200">Cancel</button>
-                    <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700">Add</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        // 1. Business Data & State
-        const RATE_PER_HOUR = 400; // EGP
-        let partners = [
-            { id: 'p1', name: 'Admin (Owner)', role: 'Owner', isTawaquf: false, jobs: [] },
-            { id: 'p2', name: 'Budi Pratama', role: 'Mitra', isTawaquf: false, jobs: [] },
-            { id: 'p3', name: 'Siti Maryam', role: 'Mitra', isTawaquf: true, jobs: [] }
-        ];
-
-        // 2. Core Rendering Functions
-        function renderDashboard() {
-            renderPartnerTable();
-            renderLeaderboard();
-            updateWorkerDropdown();
-            calculateFinancials();
-        }
-
-        // Tawaquf Toggle Handler
-        function toggleTawaquf(id) {
-            const partner = partners.find(p => p.id === id);
-            if(partner) {
-                partner.isTawaquf = !partner.isTawaquf;
-                renderDashboard();
-            }
-        }
-
-        // Remove Partner
-        function removePartner(id) {
-            if(confirm("Are you sure you want to remove this partner?")) {
-                partners = partners.filter(p => p.id !== id);
-                renderDashboard();
-            }
-        }
-
-        function renderPartnerTable() {
-            const tbody = document.getElementById('partnerTableBody');
-            tbody.innerHTML = '';
-            
-            partners.forEach(p => {
-                const isOwner = p.role === 'Owner';
-                const statusBadge = p.isTawaquf 
-                    ? `<span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">Tawaquf</span>`
-                    : `<span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-green-600"></div> Active</span>`;
-                
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="p-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">${p.name.charAt(0)}</div>
-                                <div>
-                                    <p class="font-semibold text-gray-800">${p.name}</p>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="p-4 text-gray-500">${p.role}</td>
-                        <td class="p-4">
-                            <div class="flex items-center gap-3">
-                                <label class="flex items-center cursor-pointer">
-                                    <div class="relative">
-                                        <input type="checkbox" class="sr-only" ${!p.isTawaquf ? 'checked' : ''} onchange="toggleTawaquf('${p.id}')">
-                                        <div class="block bg-gray-200 w-10 h-6 rounded-full transition duration-300 ease-in-out ${!p.isTawaquf ? 'bg-blue-600' : ''}"></div>
-                                        <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition transform duration-300 ease-in-out ${!p.isTawaquf ? 'translate-x-4' : ''}"></div>
-                                    </div>
-                                </label>
-                                ${statusBadge}
-                            </div>
-                        </td>
-                        <td class="p-4 flex gap-2">
-                            ${!isOwner ? `<button onclick="removePartner('${p.id}')" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><i class="ph ph-trash text-lg"></i></button>` : '<span class="text-xs text-gray-400">Restricted</span>'}
-                        </td>
-                    </tr>
-                `;
-            });
-        }
-
-        function renderLeaderboard() {
-            const list = document.getElementById('leaderboardList');
-            list.innerHTML = '';
-
-            // Calculate stats per partner
-            let stats = partners.map(p => {
-                let totalHours = 0;
-                let totalRating = 0;
-                let grossEarnings = 0;
-
-                p.jobs.forEach(j => {
-                    const timeDecimal = j.hours + (j.minutes / 60);
-                    totalHours += timeDecimal;
-                    totalRating += j.rating;
-                    grossEarnings += (timeDecimal * RATE_PER_HOUR);
-                });
-
-                const avgRating = p.jobs.length > 0 ? (totalRating / p.jobs.length).toFixed(1) : 0;
-                
-                return {
-                    ...p,
-                    totalHours: totalHours,
-                    avgRating: avgRating,
-                    grossEarnings: grossEarnings
-                };
-            });
-
-            // Sort by Total Hours, then rating
-            stats.sort((a, b) => b.totalHours - a.totalHours || b.avgRating - a.avgRating);
-
-            stats.forEach((s, index) => {
-                const rankBadge = index === 0 
-                    ? `<div class="absolute -top-1 -left-1 w-5 h-5 bg-yellow-400 text-white rounded-full flex items-center justify-center text-[10px] font-bold border border-white shadow-sm">1</div>`
-                    : `<div class="w-6 h-6 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center text-xs font-bold">${index + 1}</div>`;
-                
-                const avatar = index === 0
-                    ? `<div class="relative"><div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold border-2 border-blue-100">${s.name.charAt(0)}</div>${rankBadge}</div>`
-                    : rankBadge;
-
-                list.innerHTML += `
-                    <div class="flex items-center justify-between p-3 ${index === 0 ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50 border border-gray-100'} rounded-xl">
-                        <div class="flex items-center gap-4">
-                            ${avatar}
-                            <div>
-                                <p class="font-bold text-gray-800 text-sm">${s.name}</p>
-                                <p class="text-[11px] text-gray-500">${s.totalHours.toFixed(1)} Hours • ${s.avgRating} ⭐</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-bold text-gray-800 text-sm">EGP ${s.grossEarnings.toLocaleString()}</p>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function calculateFinancials() {
-            let totalGross = 0;
-            let companyNet = 0;
-
-            partners.forEach(p => {
-                p.jobs.forEach(j => {
-                    const timeDecimal = j.hours + (j.minutes / 60);
-                    const gross = timeDecimal * RATE_PER_HOUR;
-                    totalGross += gross;
-
-                    if (p.role === 'Owner') {
-                        // Net Profit Owner = Gross - Expenses
-                        companyNet += (gross - j.expenses);
-                    } else {
-                        // Company gets 20% from Mitra
-                        companyNet += (gross * 0.20);
-                    }
-                });
-            });
-
-            // Update UI
-            const formatEGP = (num) => 'EGP ' + num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-            
-            document.getElementById('dashGross').innerText = formatEGP(totalGross);
-            document.getElementById('dashNet').innerText = formatEGP(companyNet);
-            document.getElementById('statGross').innerText = formatEGP(totalGross);
-            document.getElementById('statNet').innerText = formatEGP(companyNet);
-        }
-
-        // 3. Modals & Forms
-        function openJobModal() {
-            document.getElementById('jobDate').valueAsDate = new Date();
-            document.getElementById('jobModal').classList.remove('hidden');
-            toggleExpenses(); // Check initial state
-        }
-
-        function openPartnerModal() {
-            document.getElementById('partnerModal').classList.remove('hidden');
-            document.getElementById('partnerName').value = '';
-        }
-
-        function closeModals() {
-            document.getElementById('jobModal').classList.add('hidden');
-            document.getElementById('partnerModal').classList.add('hidden');
-        }
-
-        function updateWorkerDropdown() {
-            const select = document.getElementById('jobWorker');
-            select.innerHTML = '';
-            // Only show active (non-tawaquf) workers in the dropdown
-            partners.filter(p => !p.isTawaquf).forEach(p => {
-                select.innerHTML += `<option value="${p.id}">${p.name} (${p.role})</option>`;
-            });
-        }
-
-        function toggleExpenses() {
-            const workerId = document.getElementById('jobWorker').value;
-            const worker = partners.find(p => p.id === workerId);
-            const expenseField = document.getElementById('expenseField');
-            
-            if (worker && worker.role === 'Owner') {
-                expenseField.classList.remove('hidden');
-            } else {
-                expenseField.classList.add('hidden');
-                document.getElementById('jobExpenses').value = 0; // reset
-            }
-        }
-
-        function submitJob(e) {
-            e.preventDefault();
-            const workerId = document.getElementById('jobWorker').value;
-            const partner = partners.find(p => p.id === workerId);
-            
-            const newJob = {
-                date: document.getElementById('jobDate').value,
-                area: document.getElementById('jobArea').value,
-                hours: parseInt(document.getElementById('jobHours').value) || 0,
-                minutes: parseInt(document.getElementById('jobMinutes').value) || 0,
-                rating: parseFloat(document.getElementById('jobRating').value) || 5,
-                expenses: partner.role === 'Owner' ? (parseFloat(document.getElementById('jobExpenses').value) || 0) : 0
-            };
-
-            if(newJob.hours === 0 && newJob.minutes === 0) {
-                alert("Please enter job duration.");
-                return;
-            }
-
-            partner.jobs.push(newJob);
-            closeModals();
-            document.getElementById('jobForm').reset();
-            renderDashboard(); // Re-calculate everything
-        }
-
-        function submitPartner(e) {
-            e.preventDefault();
-            const name = document.getElementById('partnerName').value;
-            if(name.trim() === '') return;
-
-            partners.push({
-                id: 'p' + Date.now(),
-                name: name,
-                role: 'Mitra',
-                isTawaquf: false,
-                jobs: []
-            });
-
-            closeModals();
-            renderDashboard();
-        }
-
-        // Initialize App
-        window.onload = renderDashboard;
-    </script>
-</body>
-</html>
+  );
+}
