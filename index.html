@@ -1,11 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NUQTOS Management</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="// ══ SUPABASE CONFIG ══
+const SUPA_URL = https://egpurefwfbzijaofjzbz.supabase.co/rest/v1/  // 
+const SUPA_KEY = sb_publishable_Uh7QVtvr_vXkR2ohUS2k2A_Tr8fAsKE    // 
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY)
+
+let currentUser = null
+let currentRole = null
+
+// ══ AUTH ══
+async function checkAuth() {
+  const { data: { session } } = await supa.auth.getSession()
+  if (!session) {
+    showLoginPage()
+    return false
+  }
+  currentUser = session.user
+  const { data: profile } = await supa.from('profiles')
+    .select('*').eq('id', currentUser.id).single()
+  currentRole = profile?.role || 'viewer'
+  return true
+}
+
+async function login(email, password) {
+  const { data, error } = await supa.auth.signInWithPassword({ email, password })
+  if (error) { alert('Login gagal: ' + error.message); return }
+  currentUser = data.user
+  const { data: profile } = await supa.from('profiles')
+    .select('*').eq('id', currentUser.id).single()
+  currentRole = profile?.role || 'viewer'
+  hideLoginPage()
+  await loadAllData()
+  renderDashboard()
+}
+
+async function logout() {
+  await supa.auth.signOut()
+  currentUser = null; currentRole = null
+  showLoginPage()
+}
+
+// ══ LOAD DATA ══
+async function loadAllData() {
+  const [partners, jobs, settings] = await Promise.all([
+    supa.from('partners').select('*').order('created_at'),
+    supa.from('jobs').select('*').order('date', { ascending: false }),
+    supa.from('settings').select('*').eq('id', 1).single()
+  ])
+  S.partners = partners.data || []
+  S.jobs     = jobs.data?.map(j => ({
+    ...j, h: j.hours, m: j.minutes, q: j.quality,
+    wid: j.worker_id, isOwner: j.is_owner,
+    exp: { sabun: j.exp_sabun, sponge: j.exp_sponge, transport: j.exp_transport, other: j.exp_other }
+  })) || []
+  if (settings.data) {
+    S.rate = settings.data.rate
+    S.mitraShare = settings.data.mitra_share
+    S.areas = settings.data.areas || ['Darrasah','Sabi','Asyir']
+  }
+}
+
+// ══ SAVE JOB ══
+async function saveJobToDB(jobData) {
+  const row = {
+    worker: jobData.worker,
+    worker_id: jobData.wid === 'owner' ? null : jobData.wid,
+    is_owner: jobData.isOwner,
+    date: jobData.date,
+    area: jobData.area,
+    hours: jobData.h,
+    minutes: jobData.m,
+    quality: jobData.q,
+    notes: jobData.notes,
+    exp_sabun: jobData.exp?.sabun || 0,
+    exp_sponge: jobData.exp?.sponge || 0,
+    exp_transport: jobData.exp?.transport || 0,
+    exp_other: jobData.exp?.other || 0,
+  }
+  if (jobData.id && !jobData.id.startsWith('j')) {
+    // Update existing
+    const { error } = await supa.from('jobs').update(row).eq('id', jobData.id)
+    if (error) alert('Error: ' + error.message)
+  } else {
+    // Insert new
+    const { error } = await supa.from('jobs').insert(row)
+    if (error) alert('Error: ' + error.message)
+  }
+  await loadAllData()
+}
+
+// ══ SAVE PARTNER ══
+async function savePartnerToDB(partnerData) {
+  if (partnerData.id && !partnerData.id.startsWith('p')) {
+    const { error } = await supa.from('partners').update(partnerData).eq('id', partnerData.id)
+    if (error) alert('Error: ' + error.message)
+  } else {
+    const { id, ...data } = partnerData
+    const { error } = await supa.from('partners').insert(data)
+    if (error) alert('Error: ' + error.message)
+  }
+  await loadAllData()
+}
+
+// ══ DELETE ══
+async function deleteFromDB(table, id) {
+  const { error } = await supa.from(table).delete().eq('id', id)
+  if (error) alert('Error: ' + error.message)
+  await loadAllData()
+}
+
+// ══ UPDATE SETTINGS ══
+async function updateSettingsToDB() {
+  await supa.from('settings').update({
+    rate: S.rate,
+    mitra_share: S.mitraShare,
+    areas: S.areas
+  }).eq('id', 1)
+}"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -34,7 +150,32 @@
   --radius: 12px;
   --radius-sm: 8px;
   --radius-pill: 100px;
-}
+}<!-- LOGIN PAGE -->
+<div id="loginPage" style="
+  position:fixed;inset:0;background:#fff;z-index:999;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Inter',sans-serif;
+">
+  <div style="width:360px;padding:40px;border:1px solid #e8e8e8;border-radius:16px">
+    <div style="font-size:22px;font-weight:700;margin-bottom:4px">Pristine Management</div>
+    <div style="font-size:13px;color:#9b9b9b;margin-bottom:28px">Sign in to continue</div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:600;color:#6b6b6b;display:block;margin-bottom:5px">EMAIL</label>
+      <input id="loginEmail" type="email" placeholder="admin@pristine.com"
+        style="width:100%;padding:10px 12px;border:1px solid #e8e8e8;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;outline:none">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;font-weight:600;color:#6b6b6b;display:block;margin-bottom:5px">PASSWORD</label>
+      <input id="loginPass" type="password" placeholder="••••••••"
+        style="width:100%;padding:10px 12px;border:1px solid #e8e8e8;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;outline:none">
+    </div>
+    <button onclick="login(document.getElementById('loginEmail').value, document.getElementById('loginPass').value)"
+      style="width:100%;padding:11px;background:#0a0a0a;color:#fff;border:none;border-radius:100px;font-size:14px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer">
+      Sign In
+    </button>
+    <div id="loginErr" style="color:#dc2626;font-size:12px;text-align:center;margin-top:10px"></div>
+  </div>
+</div>
 body {
   font-family: 'Inter', -apple-system, sans-serif;
   background: var(--bg-secondary);
