@@ -1,718 +1,324 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NUQTOS Management</title>
+<title>Pristine Management</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<script src="// ══ SUPABASE CONFIG ══
-const SUPA_URL = https://egpurefwfbzijaofjzbz.supabase.co/rest/v1/  // 
-const SUPA_KEY = sb_publishable_Uh7QVtvr_vXkR2ohUS2k2A_Tr8fAsKE    // 
-const supa = supabase.createClient(SUPA_URL, SUPA_KEY)
-
-let currentUser = null
-let currentRole = null
-
-// ══ AUTH ══
-async function checkAuth() {
-  const { data: { session } } = await supa.auth.getSession()
-  if (!session) {
-    showLoginPage()
-    return false
-  }
-  currentUser = session.user
-  const { data: profile } = await supa.from('profiles')
-    .select('*').eq('id', currentUser.id).single()
-  currentRole = profile?.role || 'viewer'
-  return true
-}
-
-async function login(email, password) {
-  const { data, error } = await supa.auth.signInWithPassword({ email, password })
-  if (error) { alert('Login gagal: ' + error.message); return }
-  currentUser = data.user
-  const { data: profile } = await supa.from('profiles')
-    .select('*').eq('id', currentUser.id).single()
-  currentRole = profile?.role || 'viewer'
-  hideLoginPage()
-  await loadAllData()
-  renderDashboard()
-}
-
-async function logout() {
-  await supa.auth.signOut()
-  currentUser = null; currentRole = null
-  showLoginPage()
-}
-
-// ══ LOAD DATA ══
-async function loadAllData() {
-  const [partners, jobs, settings] = await Promise.all([
-    supa.from('partners').select('*').order('created_at'),
-    supa.from('jobs').select('*').order('date', { ascending: false }),
-    supa.from('settings').select('*').eq('id', 1).single()
-  ])
-  S.partners = partners.data || []
-  S.jobs     = jobs.data?.map(j => ({
-    ...j, h: j.hours, m: j.minutes, q: j.quality,
-    wid: j.worker_id, isOwner: j.is_owner,
-    exp: { sabun: j.exp_sabun, sponge: j.exp_sponge, transport: j.exp_transport, other: j.exp_other }
-  })) || []
-  if (settings.data) {
-    S.rate = settings.data.rate
-    S.mitraShare = settings.data.mitra_share
-    S.areas = settings.data.areas || ['Darrasah','Sabi','Asyir']
-  }
-}
-
-// ══ SAVE JOB ══
-async function saveJobToDB(jobData) {
-  const row = {
-    worker: jobData.worker,
-    worker_id: jobData.wid === 'owner' ? null : jobData.wid,
-    is_owner: jobData.isOwner,
-    date: jobData.date,
-    area: jobData.area,
-    hours: jobData.h,
-    minutes: jobData.m,
-    quality: jobData.q,
-    notes: jobData.notes,
-    exp_sabun: jobData.exp?.sabun || 0,
-    exp_sponge: jobData.exp?.sponge || 0,
-    exp_transport: jobData.exp?.transport || 0,
-    exp_other: jobData.exp?.other || 0,
-  }
-  if (jobData.id && !jobData.id.startsWith('j')) {
-    // Update existing
-    const { error } = await supa.from('jobs').update(row).eq('id', jobData.id)
-    if (error) alert('Error: ' + error.message)
-  } else {
-    // Insert new
-    const { error } = await supa.from('jobs').insert(row)
-    if (error) alert('Error: ' + error.message)
-  }
-  await loadAllData()
-}
-
-// ══ SAVE PARTNER ══
-async function savePartnerToDB(partnerData) {
-  if (partnerData.id && !partnerData.id.startsWith('p')) {
-    const { error } = await supa.from('partners').update(partnerData).eq('id', partnerData.id)
-    if (error) alert('Error: ' + error.message)
-  } else {
-    const { id, ...data } = partnerData
-    const { error } = await supa.from('partners').insert(data)
-    if (error) alert('Error: ' + error.message)
-  }
-  await loadAllData()
-}
-
-// ══ DELETE ══
-async function deleteFromDB(table, id) {
-  const { error } = await supa.from(table).delete().eq('id', id)
-  if (error) alert('Error: ' + error.message)
-  await loadAllData()
-}
-
-// ══ UPDATE SETTINGS ══
-async function updateSettingsToDB() {
-  await supa.from('settings').update({
-    rate: S.rate,
-    mitra_share: S.mitraShare,
-    areas: S.areas
-  }).eq('id', 1)
-}"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-:root {
-  --sidebar-w: 240px;
-  --bg: #ffffff;
-  --bg-secondary: #f9f9f9;
-  --bg-hover: #f5f5f5;
-  --border: #e8e8e8;
-  --border-light: #f0f0f0;
-  --text: #0a0a0a;
-  --text-secondary: #6b6b6b;
-  --text-tertiary: #9b9b9b;
-  --accent: #0a0a0a;
-  --accent-hover: #2a2a2a;
-  --pill-bg: #0a0a0a;
-  --pill-text: #ffffff;
-  --pill-outline-bg: #f5f5f5;
-  --pill-outline-text: #0a0a0a;
-  --success: #16a34a;
-  --success-bg: #f0fdf4;
-  --warning: #d97706;
-  --warning-bg: #fffbeb;
-  --danger: #dc2626;
-  --danger-bg: #fef2f2;
-  --gold: #f59e0b;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --radius-pill: 100px;
-}<!-- LOGIN PAGE -->
-<div id="loginPage" style="
-  position:fixed;inset:0;background:#fff;z-index:999;
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Inter',sans-serif;
-">
-  <div style="width:360px;padding:40px;border:1px solid #e8e8e8;border-radius:16px">
-    <div style="font-size:22px;font-weight:700;margin-bottom:4px">Pristine Management</div>
-    <div style="font-size:13px;color:#9b9b9b;margin-bottom:28px">Sign in to continue</div>
-    <div style="margin-bottom:14px">
-      <label style="font-size:12px;font-weight:600;color:#6b6b6b;display:block;margin-bottom:5px">EMAIL</label>
-      <input id="loginEmail" type="email" placeholder="admin@pristine.com"
-        style="width:100%;padding:10px 12px;border:1px solid #e8e8e8;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;outline:none">
-    </div>
-    <div style="margin-bottom:20px">
-      <label style="font-size:12px;font-weight:600;color:#6b6b6b;display:block;margin-bottom:5px">PASSWORD</label>
-      <input id="loginPass" type="password" placeholder="••••••••"
-        style="width:100%;padding:10px 12px;border:1px solid #e8e8e8;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;outline:none">
-    </div>
-    <button onclick="login(document.getElementById('loginEmail').value, document.getElementById('loginPass').value)"
-      style="width:100%;padding:11px;background:#0a0a0a;color:#fff;border:none;border-radius:100px;font-size:14px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer">
-      Sign In
-    </button>
-    <div id="loginErr" style="color:#dc2626;font-size:12px;text-align:center;margin-top:10px"></div>
-  </div>
-</div>
-body {
-  font-family: 'Inter', -apple-system, sans-serif;
-  background: var(--bg-secondary);
-  color: var(--text);
-  display: flex;
-  min-height: 100vh;
-  font-size: 14px;
-  -webkit-font-smoothing: antialiased;
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --sidebar-w:240px;
+  --bg:#ffffff;--bg-secondary:#f9f9f9;--bg-hover:#f5f5f5;
+  --border:#e8e8e8;--border-light:#f0f0f0;
+  --text:#0a0a0a;--text-secondary:#6b6b6b;--text-tertiary:#9b9b9b;
+  --success:#16a34a;--success-bg:#f0fdf4;
+  --warning:#d97706;--warning-bg:#fffbeb;
+  --danger:#dc2626;--danger-bg:#fef2f2;
+  --gold:#f59e0b;
+  --radius:12px;--radius-sm:8px;--radius-pill:100px;
 }
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-secondary);color:var(--text);display:flex;min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased}
 
 /* ── SIDEBAR ── */
-.sidebar {
-  width: var(--sidebar-w);
-  background: var(--bg);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  height: 100vh;
-  z-index: 100;
-  overflow-y: auto;
-}
-.sidebar-top {
-  padding: 16px 16px 8px;
-  border-bottom: 1px solid var(--border-light);
-}
-.sidebar-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 4px 12px;
-}
-.logo-mark {
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--text);
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: -1px;
-}
-.logo-text { font-size: 13px; font-weight: 600; color: var(--text); }
-.logo-sub { font-size: 11px; color: var(--text-tertiary); font-weight: 400; }
-.search-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 7px 10px;
-  margin-bottom: 8px;
-  cursor: text;
-}
-.search-box input {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 13px;
-  font-family: 'Inter', sans-serif;
-  color: var(--text);
-  flex: 1;
-  min-width: 0;
-}
-.search-box input::placeholder { color: var(--text-tertiary); }
-.search-kbd {
-  font-size: 10px;
-  color: var(--text-tertiary);
-  background: var(--border-light);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 1px 5px;
-  font-family: 'Inter', sans-serif;
-}
-.nav-section { padding: 8px 8px; }
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  color: var(--text-secondary);
-  font-size: 13.5px;
-  font-weight: 400;
-  transition: all .15s;
-  user-select: none;
-  position: relative;
-}
-.nav-item:hover { background: var(--bg-hover); color: var(--text); }
-.nav-item.active { background: var(--bg-hover); color: var(--text); font-weight: 500; }
-.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.75; }
-.nav-sub {
-  padding-left: 34px;
-  margin-top: 2px;
-}
-.nav-sub-item {
-  display: block;
-  padding: 5px 10px;
-  font-size: 13px;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all .15s;
-  font-weight: 400;
-}
-.nav-sub-item:hover { color: var(--text); background: var(--bg-hover); }
-.nav-sub-item.active { color: var(--text); font-weight: 500; }
-.sidebar-divider { height: 1px; background: var(--border-light); margin: 4px 16px; }
-.sidebar-bottom {
-  margin-top: auto;
-  padding: 8px 8px 12px;
-  border-top: 1px solid var(--border-light);
-}
-.user-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background .15s;
-}
-.user-row:hover { background: var(--bg-hover); }
-.user-av {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: var(--text);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.user-name { font-size: 13px; font-weight: 500; flex: 1; }
-.user-role { font-size: 11px; color: var(--text-tertiary); }
-.add-job-pill {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: var(--pill-bg);
-  color: var(--pill-text);
-  border: none;
-  border-radius: var(--radius-pill);
-  padding: 9px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: 'Inter', sans-serif;
-  cursor: pointer;
-  width: 100%;
-  margin-bottom: 4px;
-  transition: background .15s;
-}
-.add-job-pill:hover { background: var(--accent-hover); }
-.add-job-pill svg { width: 15px; height: 15px; }
+.sidebar{width:var(--sidebar-w);background:var(--bg);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;height:100vh;z-index:100;overflow-y:auto}
+.sidebar-top{padding:16px 16px 8px;border-bottom:1px solid var(--border-light)}
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:8px 4px 12px}
+.logo-mark{width:28px;height:28px;border:2px solid var(--text);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;letter-spacing:-1px}
+.logo-name{font-size:13px;font-weight:600}.logo-sub{font-size:11px;color:var(--text-tertiary)}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;margin-bottom:8px;cursor:text}
+.search-box input{border:none;background:transparent;outline:none;font-size:13px;font-family:'Inter',sans-serif;color:var(--text);flex:1;min-width:0}
+.search-box input::placeholder{color:var(--text-tertiary)}
+.search-kbd{font-size:10px;color:var(--text-tertiary);background:var(--border-light);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+.nav-section{padding:8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--radius-sm);cursor:pointer;color:var(--text-secondary);font-size:13.5px;font-weight:400;transition:all .15s;user-select:none}
+.nav-item:hover{background:var(--bg-hover);color:var(--text)}
+.nav-item.active{background:var(--bg-hover);color:var(--text);font-weight:500}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;stroke-width:1.75}
+.sidebar-divider{height:1px;background:var(--border-light);margin:4px 16px}
+.sidebar-bottom{margin-top:auto;padding:8px 8px 12px;border-top:1px solid var(--border-light)}
+.user-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer;transition:background .15s}
+.user-row:hover{background:var(--bg-hover)}
+.user-av{width:28px;height:28px;border-radius:6px;background:var(--text);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.user-name{font-size:13px;font-weight:500;flex:1}.user-role-lbl{font-size:11px;color:var(--text-tertiary)}
+.add-job-pill{display:flex;align-items:center;gap:7px;background:var(--text);color:#fff;border:none;border-radius:var(--radius-pill);padding:9px 16px;font-size:13px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;width:100%;margin-bottom:4px;transition:background .15s}
+.add-job-pill:hover{background:#2a2a2a}
+.add-job-pill svg{width:15px;height:15px}
 
 /* ── MAIN ── */
-.main { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; }
-.page { display: none; padding: 32px 36px; max-width: 1200px; }
-.page.active { display: block; }
-.page-title {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 24px;
-  letter-spacing: -0.3px;
-}
+.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh}
+.page{display:none;padding:32px 36px;max-width:1200px}
+.page.active{display:block}
 
 /* ── CARDS ── */
-.card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-.card-p { padding: 24px; }
-.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--bg); margin-bottom: 20px; }
-.stat-cell { padding: 24px 28px; border-right: 1px solid var(--border); position: relative; }
-.stat-cell:last-child { border-right: none; }
-.stat-cell-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.stat-cell-title { font-size: 14px; font-weight: 500; color: var(--text); }
-.stat-cell-val { font-size: 36px; font-weight: 600; letter-spacing: -1.5px; color: var(--text); line-height: 1; margin-bottom: 10px; }
-.stat-cell-sub { font-size: 13px; color: var(--text-tertiary); }
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.card-p{padding:20px}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--bg);margin-bottom:20px}
+.stat-cell{padding:24px 28px;border-right:1px solid var(--border)}
+.stat-cell:last-child{border-right:none}
+.stat-cell-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.stat-cell-title{font-size:13.5px;font-weight:500;color:var(--text)}
+.stat-cell-val{font-size:34px;font-weight:600;letter-spacing:-1.5px;color:var(--text);line-height:1;margin-bottom:8px}
+.stat-cell-sub{font-size:12px;color:var(--text-tertiary)}
 
 /* ── BUTTONS ── */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: var(--radius-pill);
-  font-size: 13px;
-  font-weight: 500;
-  font-family: 'Inter', sans-serif;
-  cursor: pointer;
-  border: none;
-  transition: all .15s;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.btn-solid { background: var(--pill-bg); color: var(--pill-text); }
-.btn-solid:hover { background: var(--accent-hover); }
-.btn-outline { background: var(--pill-outline-bg); color: var(--pill-outline-text); border: 1px solid var(--border); }
-.btn-outline:hover { background: var(--border-light); }
-.btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
-.btn-ghost:hover { background: var(--bg-hover); color: var(--text); }
-.btn-danger-soft { background: var(--danger-bg); color: var(--danger); border: 1px solid #fca5a5; }
-.btn-danger-soft:hover { background: #fee2e2; }
-.btn-sm { padding: 5px 11px; font-size: 12px; }
-.btn-xs { padding: 3px 9px; font-size: 11px; }
-.btn svg { width: 14px; height: 14px; }
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-pill);font-size:13px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-solid{background:var(--text);color:#fff}.btn-solid:hover{background:#2a2a2a}
+.btn-outline{background:var(--bg-secondary);color:var(--text);border:1px solid var(--border)}.btn-outline:hover{background:var(--border-light)}
+.btn-ghost{background:transparent;color:var(--text-secondary);border:1px solid var(--border)}.btn-ghost:hover{background:var(--bg-hover);color:var(--text)}
+.btn-danger-soft{background:var(--danger-bg);color:var(--danger);border:1px solid #fca5a5}.btn-danger-soft:hover{background:#fee2e2}
+.btn-sm{padding:5px 11px;font-size:12px}.btn-xs{padding:3px 9px;font-size:11px}
+.btn svg{width:14px;height:14px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 
 /* ── TABLE ── */
-.table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--bg); }
-table { width: 100%; border-collapse: collapse; }
-thead tr { border-bottom: 1px solid var(--border); }
-th {
-  padding: 11px 16px;
-  text-align: left;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-tertiary);
-  background: var(--bg);
-  letter-spacing: 0;
-  white-space: nowrap;
-}
-th.sort { display: flex; align-items: center; gap: 4px; cursor: pointer; }
-td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text); }
-tr:last-child td { border-bottom: none; }
-tbody tr:hover td { background: var(--bg-secondary); }
-.empty-row td { text-align: center; color: var(--text-tertiary); padding: 48px; font-size: 14px; }
-.total-row td { font-weight: 600; background: var(--bg-secondary); font-size: 13px; border-top: 1px solid var(--border); }
+.table-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--bg)}
+table{width:100%;border-collapse:collapse}
+thead tr{border-bottom:1px solid var(--border)}
+th{padding:11px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--text-tertiary);background:var(--bg);white-space:nowrap}
+td{padding:13px 16px;font-size:13px;border-bottom:1px solid var(--border-light);vertical-align:middle;color:var(--text)}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--bg-secondary)}
+.empty-row td{text-align:center;color:var(--text-tertiary);padding:48px;font-size:14px}
+.total-row td{font-weight:600;background:var(--bg-secondary);font-size:13px;border-top:1px solid var(--border)}
 
 /* ── BADGES ── */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: var(--radius-pill);
-  font-size: 11.5px;
-  font-weight: 500;
-}
-.badge-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.badge-active { background: var(--success-bg); color: var(--success); }
-.badge-tawaquf { background: var(--warning-bg); color: var(--warning); }
-.badge-owner { background: #f1f5f9; color: #475569; }
-.badge-mitra { background: #f0f9ff; color: #0369a1; }
-.badge-change-up { background: var(--success-bg); color: var(--success); padding: 3px 9px; border-radius: var(--radius-pill); font-size: 11.5px; font-weight: 500; }
-.badge-change-down { background: var(--danger-bg); color: var(--danger); padding: 3px 9px; border-radius: var(--radius-pill); font-size: 11.5px; font-weight: 500; }
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:500}
+.badge-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.badge-active{background:var(--success-bg);color:var(--success)}
+.badge-tawaquf{background:var(--warning-bg);color:var(--warning)}
+.badge-owner{background:#f1f5f9;color:#475569}
+.badge-mitra{background:#f0f9ff;color:#0369a1}
+.badge-up{background:var(--success-bg);color:var(--success);padding:3px 9px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:500}
 
 /* ── TOGGLE ── */
-.toggle-wrap { display: flex; align-items: center; gap: 8px; }
-.toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
-.toggle input { display: none; }
-.toggle-slider {
-  position: absolute; inset: 0;
-  background: var(--border);
-  border-radius: 20px;
-  cursor: pointer;
-  transition: .2s;
-}
-.toggle-slider:before {
-  content: '';
-  position: absolute;
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  top: 3px; left: 3px;
-  transition: .2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,.15);
-}
-.toggle input:checked + .toggle-slider { background: var(--text); }
-.toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
+.toggle-wrap{display:flex;align-items:center;gap:8px}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{display:none}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:20px;cursor:pointer;transition:.2s}
+.toggle-slider:before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.toggle input:checked+.toggle-slider{background:var(--text)}
+.toggle input:checked+.toggle-slider:before{transform:translateX(16px)}
 
 /* ── STARS ── */
-.stars { display: flex; gap: 1px; }
-.star { font-size: 13px; color: #d1d5db; line-height: 1; }
-.star.on { color: #f59e0b; }
+.stars{display:flex;gap:1px}
+.star{font-size:13px;color:#d1d5db;line-height:1}
+.star.on{color:#f59e0b}
 
 /* ── AVATAR ── */
-.av {
-  width: 32px; height: 32px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11.5px; font-weight: 700; flex-shrink: 0; color: #fff;
-}
-.av-sm { width: 26px; height: 26px; font-size: 10px; border-radius: 6px; }
-.av-lg { width: 42px; height: 42px; font-size: 15px; border-radius: 10px; }
+.av{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;flex-shrink:0;color:#fff}
+.av-sm{width:26px;height:26px;font-size:10px;border-radius:6px}
+.av-lg{width:42px;height:42px;font-size:15px;border-radius:10px}
 
 /* ── WORKER INFO ── */
-.worker-info { display: flex; align-items: center; gap: 10px; }
-.worker-name { font-size: 13.5px; font-weight: 500; }
-.worker-sub { font-size: 12px; color: var(--text-tertiary); }
+.worker-info{display:flex;align-items:center;gap:10px}
+.worker-name{font-size:13.5px;font-weight:500}
+.worker-sub{font-size:12px;color:var(--text-tertiary)}
 
 /* ── ACTION ICONS ── */
-.action-group { display: flex; gap: 4px; }
-.icon-btn-sm {
-  width: 28px; height: 28px; border-radius: 6px;
-  border: 1px solid var(--border);
-  background: transparent;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all .15s; color: var(--text-secondary);
-}
-.icon-btn-sm:hover { background: var(--bg-hover); color: var(--text); }
-.icon-btn-sm.del:hover { background: var(--danger-bg); border-color: #fca5a5; color: var(--danger); }
-.icon-btn-sm svg { width: 13px; height: 13px; stroke-width: 2; }
+.action-group{display:flex;gap:4px}
+.icon-btn-sm{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:var(--text-secondary)}
+.icon-btn-sm:hover{background:var(--bg-hover);color:var(--text)}
+.icon-btn-sm.del:hover{background:var(--danger-bg);border-color:#fca5a5;color:var(--danger)}
+.icon-btn-sm svg{width:13px;height:13px;stroke-width:2}
 
 /* ── PARTNER GRID ── */
-.partner-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
-.partner-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-.partner-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
-.partner-metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 16px; }
-.pm-cell { background: var(--bg); padding: 12px; text-align: center; }
-.pm-val { font-size: 17px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
-.pm-label { font-size: 10.5px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; font-weight: 500; }
-.partner-card-footer { display: flex; align-items: center; justify-content: space-between; }
+.partner-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.partner-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.partner-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+.partner-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:16px}
+.pm-cell{background:var(--bg);padding:12px;text-align:center}
+.pm-val{font-size:17px;font-weight:700;letter-spacing:-0.5px}
+.pm-label{font-size:10.5px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.3px;margin-top:2px;font-weight:500}
+.partner-card-footer{display:flex;align-items:center;justify-content:space-between}
 
 /* ── LEADERBOARD ── */
-.lb-top-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
-.lb-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-.lb-card.first-place { border-color: #e5e7eb; background: var(--bg); }
-.lb-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.lb-rank { font-size: 20px; }
-.lb-info { flex: 1; }
-.lb-name { font-size: 14px; font-weight: 600; }
-.lb-role { font-size: 12px; color: var(--text-tertiary); }
-.lb-metrics-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-.lb-metric { text-align: center; padding: 10px 6px; background: var(--bg-secondary); border-radius: var(--radius-sm); }
-.lb-metric-val { font-size: 16px; font-weight: 700; letter-spacing: -0.5px; }
-.lb-metric-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; font-weight: 500; }
-.lb-score-bar { display: flex; align-items: center; gap: 8px; }
-.lb-bar-track { flex: 1; height: 4px; background: var(--border); border-radius: 4px; overflow: hidden; }
-.lb-bar-fill { height: 100%; background: var(--text); border-radius: 4px; }
-.lb-score-num { font-size: 12px; font-weight: 600; color: var(--text-secondary); min-width: 28px; text-align: right; }
+.lb-top-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.lb-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.lb-card-top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.lb-name{font-size:14px;font-weight:600}.lb-role{font-size:12px;color:var(--text-tertiary)}
+.lb-metrics-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.lb-metric{text-align:center;padding:10px 6px;background:var(--bg-secondary);border-radius:var(--radius-sm)}
+.lb-metric-val{font-size:16px;font-weight:700;letter-spacing:-0.5px}
+.lb-metric-label{font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.3px;margin-top:2px;font-weight:500}
+.lb-score-bar{display:flex;align-items:center;gap:8px}
+.lb-bar-track{flex:1;height:4px;background:var(--border);border-radius:4px;overflow:hidden}
+.lb-bar-fill{height:100%;background:var(--text);border-radius:4px}
+.lb-score-num{font-size:12px;font-weight:600;color:var(--text-secondary);min-width:28px;text-align:right}
 
-/* ── DASHBOARD GRID ── */
-.dash-grid { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
-.dash-main { display: flex; flex-direction: column; gap: 16px; }
-.dash-side { display: flex; flex-direction: column; gap: 12px; }
+/* ── DASHBOARD ── */
+.dash-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+.dash-main{display:flex;flex-direction:column;gap:16px}
+.dash-side{display:flex;flex-direction:column;gap:12px}
+.hero{background:var(--text);color:#fff;border-radius:var(--radius);padding:28px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end}
+.hero-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.12);border-radius:var(--radius-pill);padding:4px 10px;font-size:11px;font-weight:500;margin-bottom:14px}
+.hero-badge-dot{width:6px;height:6px;border-radius:50%;background:#4ade80}
+.hero h2{font-size:24px;font-weight:700;letter-spacing:-0.5px;margin-bottom:6px}
+.hero p{font-size:13px;color:rgba(255,255,255,.6);margin-bottom:20px;max-width:340px}
+.hero-nums{display:flex;gap:28px}
+.hero-num-label{font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+.hero-num-val{font-size:20px;font-weight:700;letter-spacing:-0.5px;margin-top:2px}
+.hero-num-val.green{color:#4ade80}
+.hero-icon{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hero-icon svg{width:38px;height:38px;stroke:rgba(255,255,255,.6)}
 
-/* ── HERO ── */
-.hero { background: var(--text); color: #fff; border-radius: var(--radius); padding: 28px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-.hero-badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,.12); border-radius: var(--radius-pill); padding: 4px 10px; font-size: 11px; font-weight: 500; margin-bottom: 14px; }
-.hero-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
-.hero h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px; }
-.hero p { font-size: 13px; color: rgba(255,255,255,.6); margin-bottom: 20px; max-width: 340px; }
-.hero-nums { display: flex; gap: 28px; }
-.hero-num-label { font-size: 11px; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
-.hero-num-val { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-top: 2px; }
-.hero-num-val.green { color: #4ade80; }
-.hero-icon { width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.hero-icon svg { width: 38px; height: 38px; stroke: rgba(255,255,255,.6); }
-
-/* ── SIDEBAR STAT MINI ── */
-.side-stat-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
-.side-stat-label { font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-bottom: 6px; }
-.side-stat-val { font-size: 26px; font-weight: 700; letter-spacing: -1px; color: var(--text); line-height: 1; }
-.side-stat-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 6px; }
-
-/* ── MINI LB ── */
-.mini-lb-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border-light); }
-.mini-lb-item:last-child { border-bottom: none; }
-.mini-lb-rank { font-size: 12px; font-weight: 700; color: var(--text-tertiary); width: 16px; text-align: center; }
-.mini-lb-info { flex: 1; }
-.mini-lb-name { font-size: 13px; font-weight: 500; }
-.mini-lb-meta { font-size: 11.5px; color: var(--text-tertiary); }
-.mini-lb-earn { font-size: 13px; font-weight: 600; }
-
-/* ── ACTIVITY ── */
-.activity-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--border-light); }
-.activity-item:last-child { border-bottom: none; }
-.activity-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
-.activity-text { font-size: 13px; line-height: 1.4; }
-.activity-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+/* ── SIDE CARDS ── */
+.side-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.mini-lb-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border-light)}
+.mini-lb-item:last-child{border-bottom:none}
+.mini-lb-rank{font-size:12px;font-weight:700;color:var(--text-tertiary);width:16px;text-align:center}
+.mini-lb-info{flex:1}
+.mini-lb-name{font-size:13px;font-weight:500}
+.mini-lb-meta{font-size:11.5px;color:var(--text-tertiary)}
+.mini-lb-earn{font-size:13px;font-weight:600}
+.activity-item{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border-light)}
+.activity-item:last-child{border-bottom:none}
+.activity-dot{width:6px;height:6px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.activity-text{font-size:13px;line-height:1.4}
+.activity-meta{font-size:11px;color:var(--text-tertiary);margin-top:2px}
 
 /* ── CHART ── */
-.chart-wrap { padding: 0 4px 4px; }
-.chart-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 12px; }
-.chart-title { font-size: 14px; font-weight: 600; }
-.chart-sub { font-size: 12px; color: var(--text-tertiary); }
-.chart-legend { display: flex; gap: 14px; }
-.leg { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-secondary); }
-.leg-dot { width: 6px; height: 6px; border-radius: 50%; }
+.chart-head{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 12px}
+.chart-title{font-size:14px;font-weight:600}
+.chart-sub{font-size:12px;color:var(--text-tertiary)}
+.chart-legend{display:flex;gap:14px}
+.leg{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary)}
+.leg-dot{width:6px;height:6px;border-radius:50%}
 
 /* ── FILTER BAR ── */
-.filter-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
-.filter-bar select, .filter-bar input[type=date] {
-  padding: 7px 11px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-family: 'Inter', sans-serif;
-  outline: none;
-  background: var(--bg);
-  color: var(--text);
-  transition: border .15s;
-}
-.filter-bar select:focus, .filter-bar input[type=date]:focus { border-color: var(--text); }
+.filter-bar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar select,.filter-bar input[type=date]{padding:7px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'Inter',sans-serif;outline:none;background:var(--bg);color:var(--text);transition:border .15s}
+.filter-bar select:focus,.filter-bar input[type=date]:focus{border-color:var(--text)}
 
 /* ── SETTINGS ── */
-.settings-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
-.settings-card-head { padding: 18px 24px 0; }
-.settings-card-head h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
-.settings-card-body { padding: 0 24px 20px; }
-.setting-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-light); }
-.setting-row:last-child { border-bottom: none; }
-.setting-label { font-size: 13.5px; font-weight: 500; }
-.setting-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+.settings-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+.settings-head{padding:18px 24px 0}
+.settings-head h3{font-size:14px;font-weight:600;margin-bottom:16px}
+.settings-body{padding:0 24px 20px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border-light)}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:13.5px;font-weight:500}
+.setting-sub{font-size:12px;color:var(--text-tertiary);margin-top:2px}
+.area-tag{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;font-size:13.5px}
 
 /* ── MODAL ── */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.3);
-  backdrop-filter: blur(3px);
-  z-index: 300;
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; pointer-events: none; transition: opacity .2s;
-}
-.modal-overlay.open { opacity: 1; pointer-events: all; }
-.modal {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 28px;
-  width: 500px;
-  max-width: 94vw;
-  max-height: 90vh;
-  overflow-y: auto;
-  transform: translateY(12px) scale(.99);
-  transition: transform .2s;
-  box-shadow: 0 20px 60px rgba(0,0,0,.12);
-}
-.modal-overlay.open .modal { transform: translateY(0) scale(1); }
-.modal-header { margin-bottom: 20px; }
-.modal-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 3px; }
-.modal-sub { font-size: 13px; color: var(--text-tertiary); }
-.modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border-light); }
-.confirm-modal { width: 380px; text-align: center; }
-.confirm-icon { width: 52px; height: 52px; border-radius: 12px; background: var(--danger-bg); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
-.confirm-icon svg { width: 22px; height: 22px; stroke: var(--danger); }
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);backdrop-filter:blur(3px);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:28px;width:500px;max-width:94vw;max-height:90vh;overflow-y:auto;transform:translateY(12px) scale(.99);transition:transform .2s;box-shadow:0 20px 60px rgba(0,0,0,.12)}
+.modal-overlay.open .modal{transform:translateY(0) scale(1)}
+.modal-header{margin-bottom:20px}
+.modal-title{font-size:17px;font-weight:700;letter-spacing:-0.3px;margin-bottom:3px}
+.modal-sub{font-size:13px;color:var(--text-tertiary)}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:22px;padding-top:18px;border-top:1px solid var(--border-light)}
+.confirm-modal{width:380px;text-align:center}
+.confirm-icon{width:52px;height:52px;border-radius:12px;background:var(--danger-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.confirm-icon svg{width:22px;height:22px;stroke:var(--danger)}
 
 /* ── FORM ── */
-.form-group { margin-bottom: 15px; }
-.form-label {
-  display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary);
-  margin-bottom: 6px; letter-spacing: 0.2px;
-}
-.form-control {
-  width: 100%; padding: 9px 12px;
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-  font-size: 13.5px; font-family: 'Inter', sans-serif;
-  color: var(--text); background: var(--bg); outline: none;
-  transition: border .15s;
-}
-.form-control:focus { border-color: var(--text); }
-.form-control::placeholder { color: var(--text-tertiary); }
-select.form-control { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b6b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 32px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.form-hint { font-size: 11.5px; color: var(--text-tertiary); margin-top: 5px; }
-.form-hint.highlight { color: var(--text); font-weight: 500; }
-textarea.form-control { resize: vertical; min-height: 70px; }
-
-/* ── EXPENSE BOX ── */
-.expense-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; }
-.expense-box h5 { font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
-.expense-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-group{margin-bottom:15px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.2px}
+.form-control{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;font-family:'Inter',sans-serif;color:var(--text);background:var(--bg);outline:none;transition:border .15s}
+.form-control:focus{border-color:var(--text)}
+.form-control::placeholder{color:var(--text-tertiary)}
+select.form-control{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b6b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:32px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-hint{font-size:11.5px;color:var(--text-tertiary);margin-top:5px}
+.form-hint.hl{color:var(--text);font-weight:500}
+textarea.form-control{resize:vertical;min-height:70px}
+.expense-box{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px}
+.expense-box h5{font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.expense-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
 /* ── STAR INPUT ── */
-.star-input-row { display: flex; gap: 6px; }
-.star-input-row input { display: none; }
-.star-input-row label { font-size: 22px; cursor: pointer; color: #d1d5db; transition: color .1s; line-height: 1; }
-.star-input-row label.on, .star-input-row label:hover { color: #f59e0b; }
+.star-input-row{display:flex;gap:6px}
+.star-input-row input{display:none}
+.star-input-row label{font-size:22px;cursor:pointer;color:#d1d5db;transition:color .1s;line-height:1}
+.star-input-row label.on,.star-input-row label:hover{color:#f59e0b}
 
 /* ── COLOR PICKER ── */
-.color-grid { display: flex; gap: 7px; flex-wrap: wrap; }
-.color-opt {
-  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
-  border: 2px solid transparent; transition: all .15s;
-  display: flex; align-items: center; justify-content: center;
-}
-.color-opt.selected { border-color: var(--text); transform: scale(1.1); }
-.color-opt.selected::after { content: '✓'; font-size: 11px; color: #fff; font-weight: 700; }
+.color-grid{display:flex;gap:7px;flex-wrap:wrap}
+.color-opt{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.color-opt.sel{border-color:var(--text);transform:scale(1.1)}
+.color-opt.sel::after{content:'✓';font-size:11px;color:#fff;font-weight:700}
 
 /* ── PAGE HEADER ── */
-.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-.page-header-left h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
-.page-header-left p { font-size: 13px; color: var(--text-tertiary); margin-top: 2px; }
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.page-header-left h1{font-size:20px;font-weight:700;letter-spacing:-0.3px}
+.page-header-left p{font-size:13px;color:var(--text-tertiary);margin-top:2px}
+.week-pill{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-pill);padding:5px 12px;font-size:12px;font-weight:600;color:var(--text-secondary)}
+.net-pos{color:var(--success);font-weight:600}
+.net-neg{color:var(--danger);font-weight:600}
 
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #c0c0c0; }
+/* ── LOADING ── */
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--text-secondary);font-weight:500}
 
-/* ── WEEK PILL ── */
-.week-pill { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 5px 12px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:600;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--text);color:#fff;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.2);animation:toastIn .2s ease;max-width:300px}
+.toast.err{background:var(--danger)}
+.toast.ok{background:var(--success)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── SECTION LABEL ── */
-.section-label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+/* ── LOGIN ── */
+#loginPage{position:fixed;inset:0;background:#fff;z-index:999;display:flex;align-items:center;justify-content:center}
+.login-box{width:380px;padding:40px;border:1px solid var(--border);border-radius:16px;background:#fff}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.login-title{font-size:22px;font-weight:700;margin-bottom:2px}
+.login-sub{font-size:13px;color:var(--text-tertiary);margin-bottom:28px}
+.login-btn{width:100%;padding:11px;background:var(--text);color:#fff;border:none;border-radius:var(--radius-pill);font-size:14px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;transition:background .15s}
+.login-btn:hover{background:#2a2a2a}
+.login-btn:disabled{opacity:.6;cursor:not-allowed}
+.login-err{color:var(--danger);font-size:12px;text-align:center;margin-top:10px;min-height:18px}
 
-/* ── AREA TAG ── */
-.area-tag { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 6px; font-size: 13.5px; }
-
-/* ── NET INDICATOR ── */
-.net-pos { color: var(--success); font-weight: 600; }
-.net-neg { color: var(--danger); font-weight: 600; }
-.muted-dash { color: var(--text-tertiary); }
-
-@media (max-width: 900px) {
-  .sidebar { width: 56px; }
-  .sidebar-top, .sidebar-logo span, .nav-item span, .sidebar-bottom .user-name, .sidebar-bottom .user-role, .add-job-pill span { display: none; }
-  .nav-item { justify-content: center; padding: 10px; }
-  .main { margin-left: 56px; }
-  .dash-grid { grid-template-columns: 1fr; }
-  .stat-row { grid-template-columns: 1fr; }
-  .stat-cell { border-right: none; border-bottom: 1px solid var(--border); }
-  .stat-cell:last-child { border-bottom: none; }
-}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 </style>
 </head>
 <body>
 
+<!-- ══ LOGIN PAGE ══ -->
+<div id="loginPage">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-mark">P</div>
+      <div><div class="logo-name">Pristine Management</div><div style="font-size:11px;color:var(--text-tertiary)">Cleaning Service Portal</div></div>
+    </div>
+    <div class="login-title">Welcome back</div>
+    <div class="login-sub">Sign in to your account to continue</div>
+    <div class="form-group">
+      <label class="form-label">EMAIL</label>
+      <input class="form-control" type="email" id="loginEmail" placeholder="admin@pristine.com" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="form-group" style="margin-bottom:20px">
+      <label class="form-label">PASSWORD</label>
+      <input class="form-control" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign In</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ══ LOADING ══ -->
+<div class="loading-overlay" id="loadingOverlay" style="display:none">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Loading...</div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast-wrap" id="toastWrap"></div>
+
 <!-- ══ SIDEBAR ══ -->
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar" style="display:none">
   <div class="sidebar-top">
     <div class="sidebar-logo">
       <div class="logo-mark">P</div>
-      <div>
-        <div class="logo-text">Pristine</div>
-        <div class="logo-sub">Management</div>
-      </div>
+      <div><div class="logo-name">Pristine</div><div class="logo-sub">Management</div></div>
     </div>
     <div class="search-box">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9b9b9b" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -720,172 +326,127 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       <span class="search-kbd">⌘K</span>
     </div>
   </div>
-
   <div class="nav-section">
-    <div class="nav-item active" onclick="showPage('dashboard',this)" data-page="dashboard">
+    <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       <span>Dashboard</span>
     </div>
-    <div class="nav-item" onclick="showPage('jobs',this)" data-page="jobs">
+    <div class="nav-item" data-page="jobs" onclick="showPage('jobs',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
       <span>Jobs</span>
     </div>
-    <div class="nav-item" onclick="showPage('partners',this)" data-page="partners">
+    <div class="nav-item" data-page="partners" onclick="showPage('partners',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
       <span>Partners</span>
     </div>
-    <div class="nav-item" onclick="showPage('leaderboard',this)" data-page="leaderboard">
+    <div class="nav-item" data-page="leaderboard" onclick="showPage('leaderboard',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
       <span>Leaderboard</span>
     </div>
-    <div class="nav-item" onclick="showPage('settings',this)" data-page="settings">
+    <div class="nav-item" data-page="settings" onclick="showPage('settings',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       <span>Settings</span>
     </div>
   </div>
-
   <div class="sidebar-divider"></div>
-
   <div class="nav-section">
-    <div class="nav-item" onclick="alert('Support page coming soon')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
-      <span>Support</span>
-    </div>
-    <div class="nav-item" onclick="alert('Documentation coming soon')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      <span>Documentation</span>
+    <div class="nav-item" onclick="doLogout()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      <span>Logout</span>
     </div>
   </div>
-
   <div class="sidebar-bottom">
-    <button class="add-job-pill" onclick="openModal('jobModal')">
+    <button class="add-job-pill" id="addJobPillBtn" onclick="openModal('jobModal')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       <span>Add New Job</span>
     </button>
-    <div class="user-row" onclick="toggleRole()">
+    <div class="user-row">
       <div class="user-av" id="userAv">AD</div>
-      <div style="flex:1">
+      <div style="flex:1;min-width:0">
         <div class="user-name" id="userName">Admin</div>
-        <div class="user-role" id="userRoleLabel">Owner · Switch role ↕</div>
+        <div class="user-role-lbl" id="userRoleLbl">Owner</div>
       </div>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b9b9b" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      <span id="rolePill" style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:#f1f5f9;color:#475569">Admin</span>
     </div>
   </div>
 </aside>
 
-<!-- ══ PAGES ══ -->
-<main class="main">
+<!-- ══ MAIN ══ -->
+<main class="main" id="mainContent" style="display:none">
 
   <!-- DASHBOARD -->
   <div class="page active" id="page-dashboard">
-    <!-- HERO -->
     <div class="hero">
       <div>
         <div class="hero-badge"><div class="hero-badge-dot"></div>System Optimal</div>
         <h2>Pristine Performance Overview</h2>
-        <p>Your cleaning services are running efficiently. Maintain high-quality standards.</p>
+        <p>Your cleaning services are running efficiently across all areas.</p>
         <div class="hero-nums">
-          <div>
-            <div class="hero-num-label">Total Revenue</div>
-            <div class="hero-num-val" id="heroRev">0 EGP</div>
-          </div>
-          <div>
-            <div class="hero-num-label">Net Profit</div>
-            <div class="hero-num-val green" id="heroNet">0 EGP</div>
-          </div>
+          <div><div class="hero-num-label">Total Revenue</div><div class="hero-num-val" id="heroRev">0 EGP</div></div>
+          <div><div class="hero-num-label">Net Profit</div><div class="hero-num-val green" id="heroNet">0 EGP</div></div>
         </div>
       </div>
       <div class="hero-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.5 2A2.5 2.5 0 007 4.5v15A2.5 2.5 0 009.5 22h5a2.5 2.5 0 002.5-2.5v-15A2.5 2.5 0 0014.5 2h-5z"/><path d="M6 6H4a2 2 0 00-2 2v8a2 2 0 002 2h2M18 6h2a2 2 0 012 2v8a2 2 0 01-2 2h-2"/></svg>
       </div>
     </div>
-
     <div class="dash-grid">
       <div class="dash-main">
-        <!-- STAT ROW -->
         <div class="stat-row">
           <div class="stat-cell">
-            <div class="stat-cell-head">
-              <div class="stat-cell-title">Total Pemasukan Kotor</div>
-              <span class="badge-change-up" id="grossChangeBadge">+0%</span>
-            </div>
+            <div class="stat-cell-head"><div class="stat-cell-title">Total Pemasukan Kotor</div><span class="badge-up">All Time</span></div>
             <div class="stat-cell-val" id="statGross">0 EGP</div>
             <div class="stat-cell-sub">Gross revenue all workers</div>
           </div>
           <div class="stat-cell">
-            <div class="stat-cell-head">
-              <div class="stat-cell-title">Total Pendapatan Bersih</div>
-              <span class="badge-change-up">Safe Margin</span>
-            </div>
+            <div class="stat-cell-head"><div class="stat-cell-title">Total Pendapatan Bersih</div><span class="badge-up">Safe Margin</span></div>
             <div class="stat-cell-val" id="statNet">0 EGP</div>
             <div class="stat-cell-sub">20% Mitra + 100% Owner Net</div>
           </div>
           <div class="stat-cell">
-            <div class="stat-cell-head">
-              <div class="stat-cell-title">Active Workers</div>
-            </div>
+            <div class="stat-cell-head"><div class="stat-cell-title">Active Workers</div></div>
             <div class="stat-cell-val" id="statWorkers">0</div>
-            <div class="stat-cell-sub" id="statWorkersub">Partners + Owner</div>
+            <div class="stat-cell-sub" id="statWorkerSub">Mitra + Owner</div>
           </div>
         </div>
-
-        <!-- PARTNER TABLE -->
+        <!-- Partner Table -->
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div>
-              <div style="font-size:15px;font-weight:600;letter-spacing:-0.2px">Partner Network</div>
-              <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">Manage your cleaning staff</div>
-            </div>
-            <div style="display:flex;gap:7px">
-              <button class="btn btn-ghost btn-sm" id="addPartnerDashBtn" onclick="openModal('partnerModal')">+ Add Partner</button>
-            </div>
+            <div><div style="font-size:15px;font-weight:600;letter-spacing:-0.2px">Partner Network</div><div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">Manage your cleaning staff</div></div>
+            <button class="btn btn-ghost btn-sm" id="dashAddPartnerBtn" onclick="openModal('partnerModal')">+ Add Partner</button>
           </div>
           <div class="table-wrap">
-            <table>
-              <thead><tr>
-                <th>Partner Name</th><th>Status</th><th>Performance</th><th id="dashPartnerActCol">Actions</th>
-              </tr></thead>
-              <tbody id="dashPartnerBody"></tbody>
-            </table>
+            <table><thead><tr>
+              <th>Partner Name</th><th>Status</th><th>Avg Quality</th><th id="dashActCol">Actions</th>
+            </tr></thead><tbody id="dashPartnerBody"></tbody></table>
           </div>
         </div>
-
-        <!-- CHART -->
+        <!-- Chart -->
         <div class="card">
           <div class="chart-head">
-            <div>
-              <div class="chart-title">Income Performance</div>
-              <div class="chart-sub">Weekly visual financial trend</div>
-            </div>
+            <div><div class="chart-title">Income Performance</div><div class="chart-sub">Weekly financial trend</div></div>
             <div class="chart-legend">
               <div class="leg"><div class="leg-dot" style="background:#0a0a0a"></div>Gross</div>
               <div class="leg"><div class="leg-dot" style="background:#d1d5db"></div>Net</div>
             </div>
           </div>
-          <div class="chart-wrap"><canvas id="incomeChart" height="110"></canvas></div>
+          <div style="padding:0 16px 16px"><canvas id="incomeChart" height="110"></canvas></div>
         </div>
       </div>
-
-      <!-- SIDE -->
       <div class="dash-side">
-        <!-- LEADERBOARD MINI -->
-        <div class="card card-p">
+        <div class="side-card">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
             <div style="font-size:14px;font-weight:600">Leaderboard</div>
             <span class="week-pill" id="weekPill">WEEK —</span>
           </div>
-          <div id="miniLb"></div>
+          <div id="miniLb"><div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:16px 0">No data yet</div></div>
           <div style="text-align:center;margin-top:12px">
             <span style="font-size:12.5px;color:var(--text-secondary);cursor:pointer;font-weight:500" onclick="showPage('leaderboard',document.querySelector('[data-page=leaderboard]'))">View all rankings →</span>
           </div>
         </div>
-
-        <!-- RECENT ACTIVITY -->
-        <div class="card card-p">
+        <div class="side-card">
           <div style="font-size:14px;font-weight:600;margin-bottom:12px">Recent Activity</div>
-          <div id="recentAct">
-            <div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:20px 0">No activities yet</div>
-          </div>
+          <div id="recentAct"><div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:16px 0">No activities</div></div>
         </div>
       </div>
     </div>
@@ -894,16 +455,12 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <!-- JOBS -->
   <div class="page" id="page-jobs">
     <div class="page-header">
-      <div class="page-header-left">
-        <h1>Job Records</h1>
-        <p>All logged cleaning sessions</p>
-      </div>
-      <button class="btn btn-solid" onclick="openModal('jobModal')">
+      <div class="page-header-left"><h1>Job Records</h1><p>All logged cleaning sessions</p></div>
+      <button class="btn btn-solid" id="jobsAddBtn" onclick="openModal('jobModal')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add New Job
       </button>
     </div>
-
     <div class="filter-bar">
       <select id="filterWorker" onchange="renderJobsTable()"><option value="">All Workers</option></select>
       <select id="filterArea" onchange="renderJobsTable()"><option value="">All Areas</option></select>
@@ -911,7 +468,6 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       <input type="date" id="filterTo" onchange="renderJobsTable()">
       <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
     </div>
-
     <div class="table-wrap">
       <table>
         <thead><tr>
@@ -922,10 +478,8 @@ textarea.form-control { resize: vertical; min-height: 70px; }
         <tbody id="jobsBody"></tbody>
         <tfoot><tr class="total-row">
           <td colspan="4">Total</td>
-          <td id="totDur">—</td>
-          <td id="totGross">0 EGP</td>
-          <td id="totExp">0 EGP</td>
-          <td id="totNet">0 EGP</td>
+          <td id="totDur">—</td><td id="totGross">0 EGP</td>
+          <td id="totExp">0 EGP</td><td id="totNet">0 EGP</td>
           <td></td><td></td>
         </tr></tfoot>
       </table>
@@ -935,11 +489,8 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <!-- PARTNERS -->
   <div class="page" id="page-partners">
     <div class="page-header">
-      <div class="page-header-left">
-        <h1>Partner Management</h1>
-        <p>Manage your cleaning staff roster</p>
-      </div>
-      <button class="btn btn-solid" id="addPartnerPageBtn" onclick="openModal('partnerModal')">+ Add Partner</button>
+      <div class="page-header-left"><h1>Partner Management</h1><p>Manage your cleaning staff roster</p></div>
+      <button class="btn btn-solid" id="partnersAddBtn" onclick="openModal('partnerModal')">+ Add Partner</button>
     </div>
     <div class="partner-grid" id="partnerGrid"></div>
   </div>
@@ -947,21 +498,13 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <!-- LEADERBOARD -->
   <div class="page" id="page-leaderboard">
     <div class="page-header">
-      <div class="page-header-left">
-        <h1>Mitra Leaderboard</h1>
-        <p>Weekly performance comparison — Ranking by hours × quality</p>
-      </div>
-      <select class="form-control" style="width:160px" id="weekSel" onchange="renderLeaderboard()">
-        <option value="all">All Time</option>
-      </select>
+      <div class="page-header-left"><h1>Mitra Leaderboard</h1><p>Ranking by hours × quality score</p></div>
+      <select class="form-control" style="width:160px" id="weekSel" onchange="renderLeaderboard()"><option value="all">All Time</option></select>
     </div>
     <div class="lb-top-grid" id="lbTopGrid"></div>
     <div class="table-wrap">
       <table>
-        <thead><tr>
-          <th>Rank</th><th>Partner</th><th>Total Hours</th>
-          <th>Avg Quality</th><th>Earnings</th><th>Score</th><th>Status</th>
-        </tr></thead>
+        <thead><tr><th>Rank</th><th>Partner</th><th>Total Hours</th><th>Avg Quality</th><th>Earnings</th><th>Score</th><th>Status</th></tr></thead>
         <tbody id="lbBody"></tbody>
       </table>
     </div>
@@ -969,39 +512,30 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 
   <!-- SETTINGS -->
   <div class="page" id="page-settings">
-    <div class="page-header">
-      <div class="page-header-left"><h1>Settings</h1><p>Business configuration and data management</p></div>
-    </div>
+    <div class="page-header"><div class="page-header-left"><h1>Settings</h1><p>Business configuration and data management</p></div></div>
     <div style="max-width:580px">
       <div class="settings-card">
-        <div class="settings-card-head"><h3>Business Rules</h3></div>
-        <div class="settings-card-body">
+        <div class="settings-head"><h3>Business Rules</h3></div>
+        <div class="settings-body">
           <div class="setting-row">
-            <div>
-              <div class="setting-label">Hourly Rate</div>
-              <div class="setting-sub">Base rate charged per hour of service</div>
-            </div>
+            <div><div class="setting-label">Hourly Rate</div><div class="setting-sub">Base rate per hour of service</div></div>
             <div style="display:flex;align-items:center;gap:8px">
-              <input class="form-control" type="number" id="settingRate" value="400" style="width:100px" onchange="updateRate(this.value)">
-              <span style="font-size:13px;color:var(--text-tertiary)">EGP</span>
+              <input class="form-control" type="number" id="settingRate" style="width:100px" onchange="updateRate(this.value)">
+              <span style="font-size:13px;color:var(--text-tertiary)">EGP/hr</span>
             </div>
           </div>
           <div class="setting-row">
-            <div>
-              <div class="setting-label">Mitra Revenue Share</div>
-              <div class="setting-sub">Company keeps <strong id="companyShareDisp">20%</strong></div>
-            </div>
+            <div><div class="setting-label">Mitra Revenue Share</div><div class="setting-sub">Company keeps <strong id="companyShareDisp">20%</strong></div></div>
             <div style="display:flex;align-items:center;gap:8px">
-              <input class="form-control" type="number" id="settingShare" value="80" min="0" max="100" style="width:80px" onchange="updateShare(this.value)">
+              <input class="form-control" type="number" id="settingShare" min="0" max="100" style="width:80px" onchange="updateShare(this.value)">
               <span style="font-size:13px;color:var(--text-tertiary)">%</span>
             </div>
           </div>
         </div>
       </div>
-
       <div class="settings-card">
-        <div class="settings-card-head"><h3>Service Areas</h3></div>
-        <div class="settings-card-body">
+        <div class="settings-head"><h3>Service Areas</h3></div>
+        <div class="settings-body">
           <div id="areasList"></div>
           <div style="display:flex;gap:8px;margin-top:10px">
             <input class="form-control" id="newAreaInp" placeholder="Add new area...">
@@ -1009,18 +543,13 @@ textarea.form-control { resize: vertical; min-height: 70px; }
           </div>
         </div>
       </div>
-
       <div class="settings-card">
-        <div class="settings-card-head"><h3>Data Management</h3></div>
-        <div class="settings-card-body" style="padding-top:16px">
+        <div class="settings-head"><h3>Data Management</h3></div>
+        <div class="settings-body" style="padding-top:16px">
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-outline" onclick="exportData()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Export JSON
-            </button>
-            <button class="btn btn-outline" onclick="importData()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Import JSON
             </button>
             <button class="btn btn-danger-soft" onclick="clearAllData()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
@@ -1046,20 +575,11 @@ textarea.form-control { resize: vertical; min-height: 70px; }
     <input type="hidden" id="editJobId">
     <div class="form-group">
       <label class="form-label">Worker</label>
-      <select class="form-control" id="jobWorker" onchange="onWorkerChange()">
-        <option value="">Select worker…</option>
-        <option value="Owner">Owner (Admin)</option>
-      </select>
+      <select class="form-control" id="jobWorker" onchange="onWorkerChange()"><option value="">Select worker…</option><option value="Owner">Owner (Admin)</option></select>
     </div>
     <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Date</label>
-        <input class="form-control" type="date" id="jobDate">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Service Area</label>
-        <select class="form-control" id="jobArea"><option value="">Select area…</option></select>
-      </div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-control" type="date" id="jobDate"></div>
+      <div class="form-group"><label class="form-label">Service Area</label><select class="form-control" id="jobArea"><option value="">Select area…</option></select></div>
     </div>
     <div class="form-group">
       <label class="form-label">Duration</label>
@@ -1067,7 +587,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
         <input class="form-control" type="number" id="jobH" min="0" placeholder="Hours" oninput="previewWage()">
         <input class="form-control" type="number" id="jobM" min="0" max="59" placeholder="Minutes" oninput="previewWage()">
       </div>
-      <div class="form-hint highlight" id="wageHint">Gross wage: 0 EGP</div>
+      <div class="form-hint hl" id="wageHint">Gross wage: 0 EGP</div>
     </div>
     <div class="form-group">
       <label class="form-label">Quality Score</label>
@@ -1084,33 +604,18 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       <div class="expense-box">
         <h5>Cost per Session</h5>
         <div class="expense-grid">
-          <div class="form-group">
-            <label class="form-label">Sabun (EGP)</label>
-            <input class="form-control" type="number" id="eSabun" min="0" placeholder="0" oninput="previewWage()">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Sponge Silk (EGP)</label>
-            <input class="form-control" type="number" id="eSponge" min="0" placeholder="0" oninput="previewWage()">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Transport (EGP)</label>
-            <input class="form-control" type="number" id="eTransport" min="0" placeholder="0" oninput="previewWage()">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Other (EGP)</label>
-            <input class="form-control" type="number" id="eOther" min="0" placeholder="0" oninput="previewWage()">
-          </div>
+          <div class="form-group"><label class="form-label">Sabun (EGP)</label><input class="form-control" type="number" id="eSabun" min="0" placeholder="0" oninput="previewWage()"></div>
+          <div class="form-group"><label class="form-label">Sponge Silk (EGP)</label><input class="form-control" type="number" id="eSponge" min="0" placeholder="0" oninput="previewWage()"></div>
+          <div class="form-group"><label class="form-label">Transport (EGP)</label><input class="form-control" type="number" id="eTransport" min="0" placeholder="0" oninput="previewWage()"></div>
+          <div class="form-group"><label class="form-label">Other (EGP)</label><input class="form-control" type="number" id="eOther" min="0" placeholder="0" oninput="previewWage()"></div>
         </div>
-        <div class="form-hint highlight" id="expHint">Expenses: 0 EGP · Net: 0 EGP</div>
+        <div class="form-hint hl" id="expHint">Expenses: 0 EGP · Net: 0 EGP</div>
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Notes (optional)</label>
-      <textarea class="form-control" id="jobNotes" placeholder="Any remarks…"></textarea>
-    </div>
+    <div class="form-group"><label class="form-label">Notes (optional)</label><textarea class="form-control" id="jobNotes" placeholder="Any remarks…"></textarea></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('jobModal')">Cancel</button>
-      <button class="btn btn-solid" onclick="saveJob()">Save Job</button>
+      <button class="btn btn-solid" id="saveJobBtn" onclick="saveJob()">Save Job</button>
     </div>
   </div>
 </div>
@@ -1124,30 +629,18 @@ textarea.form-control { resize: vertical; min-height: 70px; }
     </div>
     <input type="hidden" id="editPartnerId">
     <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Full Name</label>
-        <input class="form-control" type="text" id="pName" placeholder="e.g. Budi Pratama">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Role / Specialty</label>
-        <input class="form-control" type="text" id="pRole" placeholder="e.g. Lead Cleaner">
-      </div>
+      <div class="form-group"><label class="form-label">Full Name</label><input class="form-control" type="text" id="pName" placeholder="e.g. Budi Pratama"></div>
+      <div class="form-group"><label class="form-label">Role / Specialty</label><input class="form-control" type="text" id="pRole" placeholder="e.g. Lead Cleaner"></div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Contact (optional)</label>
-      <input class="form-control" type="text" id="pContact" placeholder="Phone or email">
-    </div>
+    <div class="form-group"><label class="form-label">Contact (optional)</label><input class="form-control" type="text" id="pContact" placeholder="Phone or email"></div>
     <div class="form-group">
       <label class="form-label">Status</label>
-      <select class="form-control" id="pStatus">
-        <option value="active">Active</option>
-        <option value="tawaquf">Tawaquf (On Hold)</option>
-      </select>
+      <select class="form-control" id="pStatus"><option value="active">Active</option><option value="tawaquf">Tawaquf (On Hold)</option></select>
     </div>
     <div class="form-group">
       <label class="form-label">Avatar Color</label>
       <div class="color-grid" id="colorGrid">
-        <div class="color-opt selected" data-c="#0a0a0a" style="background:#0a0a0a" onclick="pickColor('#0a0a0a',this)"></div>
+        <div class="color-opt sel" data-c="#0a0a0a" style="background:#0a0a0a" onclick="pickColor('#0a0a0a',this)"></div>
         <div class="color-opt" data-c="#2563eb" style="background:#2563eb" onclick="pickColor('#2563eb',this)"></div>
         <div class="color-opt" data-c="#16a34a" style="background:#16a34a" onclick="pickColor('#16a34a',this)"></div>
         <div class="color-opt" data-c="#d97706" style="background:#d97706" onclick="pickColor('#d97706',this)"></div>
@@ -1160,7 +653,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('partnerModal')">Cancel</button>
-      <button class="btn btn-solid" onclick="savePartner()">Save Partner</button>
+      <button class="btn btn-solid" id="savePartnerBtn" onclick="savePartner()">Save Partner</button>
     </div>
   </div>
 </div>
@@ -1168,11 +661,9 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 <!-- CONFIRM MODAL -->
 <div class="modal-overlay" id="confirmModal" onclick="overlayClose(event,'confirmModal')">
   <div class="modal confirm-modal">
-    <div class="confirm-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-    </div>
+    <div class="confirm-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></div>
     <div class="modal-title" id="confTitle" style="margin-bottom:6px">Confirm Delete</div>
-    <p style="font-size:13px;color:var(--text-tertiary);margin-bottom:4px" id="confText">This action cannot be undone.</p>
+    <p style="font-size:13px;color:var(--text-tertiary)" id="confText">This cannot be undone.</p>
     <div class="modal-footer" style="justify-content:center">
       <button class="btn btn-ghost" onclick="closeModal('confirmModal')">Cancel</button>
       <button class="btn btn-danger-soft" id="confBtn">Delete</button>
@@ -1181,137 +672,209 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 </div>
 
 <script>
-// ════════════════════════════════════
-//  STATE
-// ════════════════════════════════════
+// ════════════════════════════════════════
+//  ⚙️  KONFIGURASI — GANTI 2 BARIS INI
+// ════════════════════════════════════════
+const SUPA_URL = https://asguypxhssptsedelakf.supabase.co/rest/v1/
+const SUPA_KEY = sb_secret_X3XZ2TCQgF29apUVHAO_tA_M9KtShlL
+// ════════════════════════════════════════
+
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY)
+
+// ── STATE ──
 let S = {
-  role: 'admin',
+  role: 'viewer',
   rate: 400,
   mitraShare: 80,
+  areas: ['Darrasah','Sabi','Asyir'],
   partners: [],
   jobs: [],
-  areas: ['Darrasah', 'Sabi', 'Asyir'],
   activities: [],
-  selectedColor: '#0a0a0a',
-};
-
-function load() {
-  const raw = localStorage.getItem('pristine_v2');
-  if (raw) try { S = { ...S, ...JSON.parse(raw) }; } catch(e) {}
-  if (!S.partners.length) seed();
-}
-function save() { localStorage.setItem('pristine_v2', JSON.stringify(S)); }
-
-function seed() {
-  const now = new Date();
-  const fd = n => new Date(now - n * 86400000).toISOString().split('T')[0];
-  S.partners = [
-    { id:'p1', name:'Andi Wijaya',    role:'Lead Cleaner', color:'#0a0a0a', status:'active',   contact:'' },
-    { id:'p2', name:'Dewi Anggraini', role:'Specialist',   color:'#2563eb', status:'active',   contact:'' },
-    { id:'p3', name:'Fahri Ramadhan', role:'Cleaner',      color:'#16a34a', status:'active',   contact:'' },
-    { id:'p4', name:'Siti Maryam',    role:'Specialist',   color:'#7c3aed', status:'tawaquf',  contact:'' },
-  ];
-  S.jobs = [
-    { id:'j1', worker:'Andi Wijaya',    wid:'p1', date:fd(1), area:'Darrasah', h:3, m:30, q:5, notes:'', exp:{}, isOwner:false },
-    { id:'j2', worker:'Dewi Anggraini', wid:'p2', date:fd(2), area:'Sabi',     h:4, m:0,  q:4, notes:'', exp:{}, isOwner:false },
-    { id:'j3', worker:'Fahri Ramadhan', wid:'p3', date:fd(3), area:'Asyir',    h:2, m:45, q:5, notes:'', exp:{}, isOwner:false },
-    { id:'j4', worker:'Owner',          wid:'owner', date:fd(1), area:'Darrasah', h:5, m:0, q:5, notes:'VIP', exp:{sabun:50,sponge:30,transport:80,other:20}, isOwner:true },
-    { id:'j5', worker:'Andi Wijaya',    wid:'p1', date:fd(4), area:'Sabi',     h:3, m:0,  q:5, notes:'', exp:{}, isOwner:false },
-    { id:'j6', worker:'Dewi Anggraini', wid:'p2', date:fd(5), area:'Asyir',    h:2, m:30, q:4, notes:'', exp:{}, isOwner:false },
-  ];
-  S.activities = [
-    { t:'Job logged: <strong>Darrasah</strong>', m:'10 min ago · Admin', c:'#0a0a0a' },
-    { t:'Job logged: <strong>Sabi</strong>',     m:'2 hr ago · Auto',    c:'#16a34a' },
-    { t:'Status: <strong>Siti Maryam → Tawaquf</strong>', m:'4 hr ago · Manual', c:'#dc2626' },
-  ];
-  save();
+  currentUser: null,
+  currentProfile: null,
 }
 
-// ════════════════════════════════════
-//  MATH
-// ════════════════════════════════════
-const wage = (h, m) => (h + m / 60) * S.rate;
-const expTotal = e => !e ? 0 : (e.sabun||0)+(e.sponge||0)+(e.transport||0)+(e.other||0);
-function jobNet(j) {
-  const g = wage(j.h, j.m);
-  return j.isOwner ? g - expTotal(j.exp) : g * (1 - S.mitraShare / 100);
+// ════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════
+async function checkSession() {
+  const { data: { session } } = await supa.auth.getSession()
+  return session
 }
-const initials = n => { if (!n) return '??'; const p = n.trim().split(' '); return p.length < 2 ? p[0].slice(0,2).toUpperCase() : (p[0][0]+p[1][0]).toUpperCase(); };
-const fmtCur = v => v.toFixed(2) + ' EGP';
-const weekNum = d => { const date = new Date(d), j1 = new Date(date.getFullYear(),0,1); return Math.ceil((((date-j1)/86400000)+j1.getDay()+1)/7); };
-const fmtDate = d => d.toISOString().split('T')[0];
 
-// ════════════════════════════════════
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim()
+  const pass  = document.getElementById('loginPass').value
+  const btn   = document.getElementById('loginBtn')
+  const err   = document.getElementById('loginErr')
+  if (!email || !pass) { err.textContent = 'Please fill in all fields'; return }
+  btn.disabled = true; btn.textContent = 'Signing in…'; err.textContent = ''
+  const { data, error } = await supa.auth.signInWithPassword({ email, password: pass })
+  if (error) {
+    err.textContent = 'Invalid email or password'
+    btn.disabled = false; btn.textContent = 'Sign In'
+    return
+  }
+  S.currentUser = data.user
+  await loadProfile()
+  await bootApp()
+}
+
+async function loadProfile() {
+  const { data } = await supa.from('profiles').select('*').eq('id', S.currentUser.id).single()
+  S.currentProfile = data
+  S.role = data?.role || 'viewer'
+}
+
+async function doLogout() {
+  await supa.auth.signOut()
+  S.currentUser = null; S.currentProfile = null; S.role = 'viewer'
+  document.getElementById('sidebar').style.display = 'none'
+  document.getElementById('mainContent').style.display = 'none'
+  document.getElementById('loginPage').style.display = 'flex'
+  document.getElementById('loginEmail').value = ''
+  document.getElementById('loginPass').value = ''
+  document.getElementById('loginBtn').disabled = false
+  document.getElementById('loginBtn').textContent = 'Sign In'
+}
+
+async function bootApp() {
+  document.getElementById('loginPage').style.display = 'none'
+  showLoading('Loading data…')
+  await loadAllData()
+  hideLoading()
+  document.getElementById('sidebar').style.display = 'flex'
+  document.getElementById('mainContent').style.display = 'block'
+  updateUserUI()
+  syncDropdowns()
+  renderDashboard()
+}
+
+function updateUserUI() {
+  const isAdmin = S.role === 'admin'
+  const name = S.currentProfile?.name || S.currentUser?.email?.split('@')[0] || 'User'
+  document.getElementById('userAv').textContent = initials(name)
+  document.getElementById('userName').textContent = name
+  document.getElementById('userRoleLbl').textContent = isAdmin ? 'Owner · Admin' : 'Mitra · Viewer'
+  document.getElementById('rolePill').textContent = isAdmin ? 'Admin' : 'Viewer'
+  document.getElementById('rolePill').style.background = isAdmin ? '#f1f5f9' : '#f0fdf4'
+  document.getElementById('rolePill').style.color = isAdmin ? '#475569' : '#16a34a'
+  // Show/hide admin-only buttons
+  const adminEls = ['dashAddPartnerBtn','partnersAddBtn','addJobPillBtn','jobsAddBtn']
+  adminEls.forEach(id => { const el=document.getElementById(id); if(el) el.style.display=isAdmin?'':'none' })
+}
+
+// ════════════════════════════════════════
+//  DATA LOADING
+// ════════════════════════════════════════
+async function loadAllData() {
+  const [pr, jr, sr] = await Promise.all([
+    supa.from('partners').select('*').order('created_at', { ascending: true }),
+    supa.from('jobs').select('*').order('date', { ascending: false }),
+    supa.from('settings').select('*').eq('id', 1).single()
+  ])
+  if (pr.error) console.error('Partners:', pr.error)
+  if (jr.error) console.error('Jobs:', jr.error)
+  S.partners = pr.data || []
+  S.jobs = (jr.data || []).map(normalizeJob)
+  if (sr.data) {
+    S.rate        = parseFloat(sr.data.rate) || 400
+    S.mitraShare  = parseFloat(sr.data.mitra_share) || 80
+    S.areas       = sr.data.areas || ['Darrasah','Sabi','Asyir']
+  }
+}
+
+function normalizeJob(j) {
+  return {
+    ...j,
+    h: j.hours || 0,
+    m: j.minutes || 0,
+    q: j.quality || 0,
+    wid: j.worker_id,
+    isOwner: j.is_owner,
+    exp: {
+      sabun:     parseFloat(j.exp_sabun)     || 0,
+      sponge:    parseFloat(j.exp_sponge)    || 0,
+      transport: parseFloat(j.exp_transport) || 0,
+      other:     parseFloat(j.exp_other)     || 0,
+    }
+  }
+}
+
+// ════════════════════════════════════════
 //  NAVIGATION
-// ════════════════════════════════════
+// ════════════════════════════════════════
 function showPage(id, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  if (el) el.classList.add('active');
-  renderPage(id);
-}
-function renderPage(id) {
-  if (id === 'dashboard')   renderDashboard();
-  if (id === 'jobs')        renderJobsPage();
-  if (id === 'partners')    renderPartnersPage();
-  if (id === 'leaderboard') renderLeaderboard();
-  if (id === 'settings')    renderSettings();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
+  document.getElementById('page-' + id).classList.add('active')
+  if (el) el.classList.add('active')
+  if (id==='dashboard')   renderDashboard()
+  if (id==='jobs')        renderJobsPage()
+  if (id==='partners')    renderPartnersPage()
+  if (id==='leaderboard') renderLeaderboard()
+  if (id==='settings')    renderSettings()
 }
 
-// ════════════════════════════════════
-//  ROLE
-// ════════════════════════════════════
-function toggleRole() {
-  S.role = S.role === 'admin' ? 'viewer' : 'admin';
-  const isAdmin = S.role === 'admin';
-  document.getElementById('userAv').textContent    = isAdmin ? 'AD' : 'VW';
-  document.getElementById('userName').textContent  = isAdmin ? 'Admin' : 'Viewer';
-  document.getElementById('userRoleLabel').textContent = isAdmin ? 'Owner · Switch role ↕' : 'Mitra View · Switch role ↕';
-  // Hide add buttons in viewer mode
-  ['addPartnerDashBtn','addPartnerPageBtn'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = isAdmin ? '' : 'none';
-  });
-  renderDashboard();
-  renderJobsTable();
-  renderPartnersPage();
+// ════════════════════════════════════════
+//  MATH
+// ════════════════════════════════════════
+const calcWage = (h, m) => (h + m / 60) * S.rate
+const expSum   = e => !e ? 0 : (+e.sabun||0)+(+e.sponge||0)+(+e.transport||0)+(+e.other||0)
+function jobNet(j) {
+  const g = calcWage(j.h, j.m)
+  return j.isOwner ? g - expSum(j.exp) : g * (1 - S.mitraShare / 100)
 }
+const initials = n => {
+  if (!n) return '??'
+  const p = n.trim().split(' ')
+  return p.length < 2 ? p[0].slice(0,2).toUpperCase() : (p[0][0]+p[1][0]).toUpperCase()
+}
+const fC  = v => (+v).toFixed(2) + ' EGP'
+const wkN = d => { const dt=new Date(d),j1=new Date(dt.getFullYear(),0,1); return Math.ceil((((dt-j1)/86400000)+j1.getDay()+1)/7) }
+const fD  = d => d.toISOString().split('T')[0]
+const avgQ = pid => { const j=S.jobs.filter(x=>x.wid===pid&&x.q); return j.length?j.reduce((a,x)=>a+x.q,0)/j.length:0 }
+const getRanked = wf => S.partners.map(p => {
+  let pj = S.jobs.filter(j=>j.wid===p.id)
+  if (wf && wf!=='all') pj = pj.filter(j=>wkN(j.date)==wf)
+  const totalH=pj.reduce((a,j)=>a+j.h+j.m/60,0), aq=pj.length?pj.reduce((a,j)=>a+j.q,0)/pj.length:0
+  return {...p,totalH,aq,earn:pj.reduce((a,j)=>a+calcWage(j.h,j.m),0),jobCount:pj.length,score:totalH*.6+aq*8}
+}).sort((a,b)=>{
+  if(a.status==='tawaquf'&&b.status!=='tawaquf')return 1
+  if(b.status==='tawaquf'&&a.status!=='tawaquf')return -1
+  return b.score-a.score
+})
 
-// ════════════════════════════════════
+// ════════════════════════════════════════
 //  DASHBOARD
-// ════════════════════════════════════
+// ════════════════════════════════════════
 function renderDashboard() {
-  let tg = 0, tn = 0;
-  S.jobs.forEach(j => { tg += wage(j.h, j.m); tn += jobNet(j); });
-  document.getElementById('heroRev').textContent  = fmtCur(tg);
-  document.getElementById('heroNet').textContent  = fmtCur(tn);
-  document.getElementById('statGross').textContent = fmtCur(tg);
-  document.getElementById('statNet').textContent   = fmtCur(tn);
-  const active = S.partners.filter(p=>p.status==='active').length + 1;
-  document.getElementById('statWorkers').textContent = active;
-  document.getElementById('statWorkersub').textContent = `${S.partners.filter(p=>p.status==='active').length} Mitra + Owner`;
-  document.getElementById('weekPill').textContent = 'WEEK ' + weekNum(fmtDate(new Date()));
-  renderDashPartners();
-  renderMiniLb();
-  renderActivity();
-  renderChart();
+  let tg=0, tn=0
+  S.jobs.forEach(j => { tg+=calcWage(j.h,j.m); tn+=jobNet(j) })
+  document.getElementById('heroRev').textContent    = fC(tg)
+  document.getElementById('heroNet').textContent    = fC(tn)
+  document.getElementById('statGross').textContent  = fC(tg)
+  document.getElementById('statNet').textContent    = fC(tn)
+  const activeP = S.partners.filter(p=>p.status==='active').length
+  document.getElementById('statWorkers').textContent   = activeP + 1
+  document.getElementById('statWorkerSub').textContent = `${activeP} Mitra + Owner`
+  document.getElementById('weekPill').textContent = 'WEEK ' + wkN(fD(new Date()))
+  renderDashPartners()
+  renderMiniLb()
+  renderActivity()
+  renderChart()
 }
 
 function renderDashPartners() {
-  const tbody = document.getElementById('dashPartnerBody');
-  if (!tbody) return;
-  const isAdmin = S.role === 'admin';
-  document.getElementById('dashPartnerActCol').style.display = isAdmin ? '' : 'none';
-  tbody.innerHTML = '';
+  const tbody = document.getElementById('dashPartnerBody')
+  const isAdmin = S.role === 'admin'
+  document.getElementById('dashActCol').style.display = isAdmin ? '' : 'none'
   if (!S.partners.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-tertiary);padding:32px">No partners yet</td></tr>';
-    return;
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No partners yet. Add your first mitra!</td></tr>'
+    return
   }
-  S.partners.forEach(p => {
-    const aq = avgQ(p.id);
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
+  tbody.innerHTML = S.partners.map(p => `
+    <tr>
       <td><div class="worker-info">
         <div class="av" style="background:${p.color}">${initials(p.name)}</div>
         <div><div class="worker-name">${p.name}</div><div class="worker-sub">${p.role}</div></div>
@@ -1320,21 +883,19 @@ function renderDashPartners() {
         <label class="toggle"><input type="checkbox" ${p.status==='active'?'checked':''} onchange="toggleStatus('${p.id}',this.checked)" ${!isAdmin?'disabled':''}><span class="toggle-slider"></span></label>
         <span style="font-size:12.5px;font-weight:500">${p.status==='active'?'Active':'Tawaquf'}</span>
       </div></td>
-      <td>${starsHTML(aq)}</td>
-      <td>${isAdmin ? `<div class="action-group">
-        <button class="icon-btn-sm" onclick="editPartner('${p.id}')" title="Edit">${iconEdit()}</button>
-        <button class="icon-btn-sm del" onclick="confirmDel('partner','${p.id}')" title="Delete">${iconDel()}</button>
-      </div>` : '<span style="color:var(--text-tertiary);font-size:12px">View only</span>'}</td>`;
-    tbody.appendChild(tr);
-  });
+      <td>${starsHTML(avgQ(p.id))}</td>
+      <td>${isAdmin?`<div class="action-group">
+        <button class="icon-btn-sm" onclick="editPartner('${p.id}')">${iEdit()}</button>
+        <button class="icon-btn-sm del" onclick="confirmDel('partner','${p.id}')">${iDel()}</button>
+      </div>`:''}</td>
+    </tr>`).join('')
 }
 
 function renderMiniLb() {
-  const el = document.getElementById('miniLb');
-  if (!el) return;
-  const ranked = getRanked().slice(0, 3);
-  if (!ranked.length) { el.innerHTML = '<p style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:12px 0">No data yet</p>'; return; }
-  el.innerHTML = ranked.map((m, i) => `
+  const el = document.getElementById('miniLb')
+  const ranked = getRanked().slice(0,3)
+  if (!ranked.length) { el.innerHTML='<div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:16px 0">No data yet</div>'; return }
+  el.innerHTML = ranked.map((m,i) => `
     <div class="mini-lb-item">
       <div class="mini-lb-rank">${i+1}</div>
       <div class="av av-sm" style="background:${m.color}">${initials(m.name)}</div>
@@ -1342,135 +903,126 @@ function renderMiniLb() {
         <div class="mini-lb-name">${m.name}</div>
         <div class="mini-lb-meta">${m.totalH.toFixed(1)}h · ${m.aq.toFixed(1)}★</div>
       </div>
-      <div class="mini-lb-earn">${m.earn.toFixed(0)} EGP</div>
-    </div>`).join('');
+      <div class="mini-lb-earn">${(+m.earn).toFixed(0)} EGP</div>
+    </div>`).join('')
 }
 
 function renderActivity() {
-  const el = document.getElementById('recentAct');
-  if (!el) return;
-  if (!S.activities.length) { el.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:20px 0">No activities</div>'; return; }
-  el.innerHTML = S.activities.slice(0,5).map(a => `
+  const el = document.getElementById('recentAct')
+  if (!S.activities.length) { el.innerHTML='<div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:16px 0">No activities</div>'; return }
+  el.innerHTML = S.activities.slice(0,6).map(a=>`
     <div class="activity-item">
       <div class="activity-dot" style="background:${a.c}"></div>
       <div><div class="activity-text">${a.t}</div><div class="activity-meta">${a.m}</div></div>
-    </div>`).join('');
+    </div>`).join('')
 }
 
-let chartInst = null;
+let chartInst = null
 function renderChart() {
-  const ctx = document.getElementById('incomeChart');
-  if (!ctx) return;
-  if (chartInst) { chartInst.destroy(); chartInst = null; }
-  const today = new Date(), dow = today.getDay();
-  const ws = new Date(today); ws.setDate(today.getDate() - ((dow+6)%7));
-  const labels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const gross = [], net = [];
+  const ctx = document.getElementById('incomeChart')
+  if (!ctx) return
+  if (chartInst) { chartInst.destroy(); chartInst = null }
+  const today=new Date(), dow=today.getDay()
+  const ws=new Date(today); ws.setDate(today.getDate()-((dow+6)%7))
+  const labels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], gross=[], net=[]
   for (let i=0;i<7;i++) {
-    const d = new Date(ws); d.setDate(ws.getDate()+i);
-    const ds = fmtDate(d);
-    const dj = S.jobs.filter(j=>j.date===ds);
-    gross.push(dj.reduce((a,j)=>a+wage(j.h,j.m),0));
-    net.push(dj.reduce((a,j)=>a+jobNet(j),0));
+    const d=new Date(ws); d.setDate(ws.getDate()+i)
+    const ds=fD(d), dj=S.jobs.filter(j=>j.date===ds)
+    gross.push(dj.reduce((a,j)=>a+calcWage(j.h,j.m),0))
+    net.push(dj.reduce((a,j)=>a+jobNet(j),0))
   }
   chartInst = new Chart(ctx, {
     type:'bar',
-    data: { labels, datasets:[
-      { label:'Gross', data:gross, backgroundColor:'#0a0a0a', borderRadius:5, borderSkipped:false },
-      { label:'Net',   data:net,   backgroundColor:'#e5e7eb', borderRadius:5, borderSkipped:false },
+    data:{labels,datasets:[
+      {label:'Gross',data:gross,backgroundColor:'#0a0a0a',borderRadius:5,borderSkipped:false},
+      {label:'Net',  data:net,  backgroundColor:'#e5e7eb',borderRadius:5,borderSkipped:false},
     ]},
-    options:{
-      responsive:true,
-      plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+ctx.raw.toFixed(0)+' EGP' }}},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(0)+' EGP'}}},
       scales:{
-        y:{ beginAtZero:true, grid:{ color:'#f5f5f5' }, border:{ display:false }, ticks:{ font:{ family:'Inter', size:11 }, color:'#9b9b9b', callback:v => v+' EGP' }},
-        x:{ grid:{ display:false }, border:{ display:false }, ticks:{ font:{ family:'Inter', size:11 }, color:'#9b9b9b' }}
+        y:{beginAtZero:true,grid:{color:'#f5f5f5'},border:{display:false},ticks:{font:{family:'Inter',size:11},color:'#9b9b9b',callback:v=>v+' EGP'}},
+        x:{grid:{display:false},border:{display:false},ticks:{font:{family:'Inter',size:11},color:'#9b9b9b'}}
       }
     }
-  });
+  })
 }
 
-// ════════════════════════════════════
+// ════════════════════════════════════════
 //  JOBS PAGE
-// ════════════════════════════════════
+// ════════════════════════════════════════
 function renderJobsPage() {
-  syncWorkerDropdowns(); syncAreaDropdowns();
-  renderJobsTable();
-  const isAdmin = S.role==='admin';
-  document.getElementById('jobActCol').style.display = isAdmin?'':'none';
+  syncDropdowns()
+  renderJobsTable()
+  document.getElementById('jobActCol').style.display = S.role==='admin' ? '' : 'none'
 }
 
 function renderJobsTable() {
-  const tbody = document.getElementById('jobsBody');
-  if (!tbody) return;
-  const fw = document.getElementById('filterWorker')?.value||'';
-  const fa = document.getElementById('filterArea')?.value||'';
-  const fd1 = document.getElementById('filterFrom')?.value||'';
-  const fd2 = document.getElementById('filterTo')?.value||'';
-  let rows = S.jobs.filter(j => {
-    if (fw && j.worker !== fw) return false;
-    if (fa && j.area !== fa) return false;
-    if (fd1 && j.date < fd1) return false;
-    if (fd2 && j.date > fd2) return false;
-    return true;
-  }).sort((a,b) => b.date.localeCompare(a.date));
-
-  let tg=0,te=0,tn=0,tm=0;
-  const isAdmin = S.role==='admin';
-  if (!rows.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="10">No Results</td></tr>'; } else {
-    tbody.innerHTML = rows.map((j,i) => {
-      const g = wage(j.h,j.m), e = j.isOwner?expTotal(j.exp):0, n = jobNet(j);
-      tg+=g; te+=e; tn+=n; tm+=j.h*60+j.m;
-      const p = j.isOwner ? null : S.partners.find(x=>x.id===j.wid);
-      const col = p?p.color:'#0a0a0a';
+  const tbody = document.getElementById('jobsBody')
+  const fw=document.getElementById('filterWorker')?.value||''
+  const fa=document.getElementById('filterArea')?.value||''
+  const fd1=document.getElementById('filterFrom')?.value||''
+  const fd2=document.getElementById('filterTo')?.value||''
+  let rows = S.jobs.filter(j=>{
+    if (fw && j.worker!==fw) return false
+    if (fa && j.area!==fa)   return false
+    if (fd1 && j.date<fd1)   return false
+    if (fd2 && j.date>fd2)   return false
+    return true
+  })
+  let tg=0,te=0,tn=0,tm=0
+  const isAdmin = S.role==='admin'
+  if (!rows.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="10">No Results</td></tr>' }
+  else {
+    tbody.innerHTML = rows.map((j,i)=>{
+      const g=calcWage(j.h,j.m), e=j.isOwner?expSum(j.exp):0, n=jobNet(j)
+      tg+=g; te+=e; tn+=n; tm+=j.h*60+j.m
+      const p=j.isOwner?null:S.partners.find(x=>x.id===j.wid)
+      const col=p?p.color:'#0a0a0a'
       return `<tr>
         <td style="color:var(--text-tertiary);font-size:12px">${i+1}</td>
         <td><div class="worker-info">
           <div class="av av-sm" style="background:${col}">${initials(j.worker)}</div>
-          <div>
-            <div class="worker-name">${j.worker}</div>
-            <span class="badge ${j.isOwner?'badge-owner':'badge-mitra'}">${j.isOwner?'Owner':'Mitra'}</span>
-          </div>
+          <div><div class="worker-name">${j.worker}</div>
+          <span class="badge ${j.isOwner?'badge-owner':'badge-mitra'}">${j.isOwner?'Owner':'Mitra'}</span></div>
         </div></td>
         <td style="color:var(--text-secondary)">${j.date}</td>
         <td>${j.area}</td>
-        <td style="font-variant-numeric:tabular-nums">${j.h}h ${j.m}m</td>
-        <td style="font-variant-numeric:tabular-nums">${g.toFixed(2)} EGP</td>
-        <td>${j.isOwner?'<span style="font-variant-numeric:tabular-nums">'+e.toFixed(2)+' EGP</span>':'<span class="muted-dash">—</span>'}</td>
-        <td class="${n>=0?'net-pos':'net-neg'}" style="font-variant-numeric:tabular-nums">${n.toFixed(2)} EGP${!j.isOwner?'<span style="font-size:10px;color:var(--text-tertiary);font-weight:400"> 20%</span>':''}</td>
+        <td>${j.h}h ${j.m}m</td>
+        <td>${g.toFixed(2)} EGP</td>
+        <td>${j.isOwner?e.toFixed(2)+' EGP':'<span style="color:var(--text-tertiary)">—</span>'}</td>
+        <td class="${n>=0?'net-pos':'net-neg'}">${n.toFixed(2)} EGP${!j.isOwner?'<span style="font-size:10px;color:var(--text-tertiary);font-weight:400"> 20%</span>':''}</td>
         <td>${starsHTML(j.q)}</td>
         <td>${isAdmin?`<div class="action-group">
-          <button class="icon-btn-sm" onclick="editJob('${j.id}')">${iconEdit()}</button>
-          <button class="icon-btn-sm del" onclick="confirmDel('job','${j.id}')">${iconDel()}</button>
+          <button class="icon-btn-sm" onclick="editJob('${j.id}')">${iEdit()}</button>
+          <button class="icon-btn-sm del" onclick="confirmDel('job','${j.id}')">${iDel()}</button>
         </div>`:'—'}</td>
-      </tr>`;
-    }).join('');
+      </tr>`
+    }).join('')
   }
-  const th=Math.floor(tm/60),tmin=tm%60;
-  document.getElementById('totDur').textContent  = `${th}h ${tmin}m`;
-  document.getElementById('totGross').textContent = fmtCur(tg);
-  document.getElementById('totExp').textContent   = fmtCur(te);
-  document.getElementById('totNet').textContent   = fmtCur(tn);
+  const th=Math.floor(tm/60),tmin=tm%60
+  document.getElementById('totDur').textContent  = `${th}h ${tmin}m`
+  document.getElementById('totGross').textContent = fC(tg)
+  document.getElementById('totExp').textContent   = fC(te)
+  document.getElementById('totNet').textContent   = fC(tn)
 }
 
 function clearFilters() {
-  ['filterWorker','filterArea','filterFrom','filterTo'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  renderJobsTable();
+  ['filterWorker','filterArea','filterFrom','filterTo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  renderJobsTable()
 }
 
-// ════════════════════════════════════
+// ════════════════════════════════════════
 //  PARTNERS PAGE
-// ════════════════════════════════════
+// ════════════════════════════════════════
 function renderPartnersPage() {
-  const isAdmin = S.role==='admin';
-  const grid = document.getElementById('partnerGrid');
-  if (!grid) return;
-  if (!S.partners.length) { grid.innerHTML='<div style="color:var(--text-tertiary);font-size:14px;padding:40px;text-align:center;grid-column:1/-1">No partners yet. Click "Add Partner" to get started.</div>'; return; }
-  grid.innerHTML = S.partners.map(p => {
-    const pj = S.jobs.filter(j=>j.wid===p.id);
-    const th = pj.reduce((a,j)=>a+j.h+j.m/60,0);
-    const aq = avgQ(p.id);
-    const earn = pj.reduce((a,j)=>a+wage(j.h,j.m),0);
+  const grid = document.getElementById('partnerGrid')
+  const isAdmin = S.role==='admin'
+  if (!S.partners.length) {
+    grid.innerHTML='<div style="color:var(--text-tertiary);font-size:14px;padding:40px;text-align:center;grid-column:1/-1">No partners yet.</div>'
+    return
+  }
+  grid.innerHTML = S.partners.map(p=>{
+    const pj=S.jobs.filter(j=>j.wid===p.id)
+    const th=pj.reduce((a,j)=>a+j.h+j.m/60,0), aq=avgQ(p.id), earn=pj.reduce((a,j)=>a+calcWage(j.h,j.m),0)
     return `<div class="partner-card">
       <div class="partner-card-top">
         <div class="worker-info">
@@ -1494,383 +1046,398 @@ function renderPartnersPage() {
           <span style="font-size:12px;font-weight:500">${p.status==='active'?'Active':'Tawaquf'}</span>
         </div>
         ${isAdmin?`<div class="action-group">
-          <button class="icon-btn-sm" onclick="editPartner('${p.id}')">${iconEdit()}</button>
-          <button class="icon-btn-sm del" onclick="confirmDel('partner','${p.id}')">${iconDel()}</button>
+          <button class="icon-btn-sm" onclick="editPartner('${p.id}')">${iEdit()}</button>
+          <button class="icon-btn-sm del" onclick="confirmDel('partner','${p.id}')">${iDel()}</button>
         </div>`:''}
       </div>
-    </div>`;
-  }).join('');
+    </div>`
+  }).join('')
 }
 
-// ════════════════════════════════════
+// ════════════════════════════════════════
 //  LEADERBOARD
-// ════════════════════════════════════
-function getRanked(wf) {
-  return S.partners.map(p => {
-    let pj = S.jobs.filter(j=>j.wid===p.id);
-    if (wf && wf!=='all') pj = pj.filter(j=>weekNum(j.date)==wf);
-    const totalH = pj.reduce((a,j)=>a+j.h+j.m/60,0);
-    const aq = pj.length ? pj.reduce((a,j)=>a+j.q,0)/pj.length : 0;
-    const earn = pj.reduce((a,j)=>a+wage(j.h,j.m),0);
-    const score = totalH*0.6 + aq*8;
-    return { ...p, totalH, aq, earn, jobCount:pj.length, score };
-  }).sort((a,b) => {
-    if (a.status==='tawaquf' && b.status!=='tawaquf') return 1;
-    if (b.status==='tawaquf' && a.status!=='tawaquf') return -1;
-    return b.score-a.score;
-  });
-}
-
+// ════════════════════════════════════════
 function renderLeaderboard() {
-  const weeks = [...new Set(S.jobs.map(j=>weekNum(j.date)))].sort((a,b)=>b-a);
-  const sel = document.getElementById('weekSel');
+  const weeks=[...new Set(S.jobs.map(j=>wkN(j.date)))].sort((a,b)=>b-a)
+  const sel=document.getElementById('weekSel')
   if (sel) {
-    const cv = sel.value;
-    sel.innerHTML = '<option value="all">All Time</option>' + weeks.map(w=>`<option value="${w}" ${w==cv?'selected':''}>Week ${w}</option>`).join('');
+    const cv=sel.value
+    sel.innerHTML='<option value="all">All Time</option>'+weeks.map(w=>`<option value="${w}" ${w==cv?'selected':''}>Week ${w}</option>`).join('')
   }
-  const wf = document.getElementById('weekSel')?.value||'all';
-  const ranked = getRanked(wf);
-  const medals = ['🥇','🥈','🥉'];
-
-  // Top 3 cards
-  const grid = document.getElementById('lbTopGrid');
-  if (grid) {
-    grid.innerHTML = ranked.slice(0,3).map((m,i) => `
-      <div class="lb-card ${i===0?'first-place':''}">
-        <div class="lb-card-top">
-          <div class="lb-rank">${medals[i]||'#'+(i+1)}</div>
-          <div class="av" style="background:${m.color}">${initials(m.name)}</div>
-          <div class="lb-info">
-            <div class="lb-name">${m.name}</div>
-            <div class="lb-role">${m.role}</div>
-          </div>
-          <span class="badge ${m.status==='active'?'badge-active':'badge-tawaquf'}">${m.status==='active'?'Active':'Tawaquf'}</span>
-        </div>
-        <div class="lb-metrics-row">
-          <div class="lb-metric"><div class="lb-metric-val">${m.totalH.toFixed(1)}</div><div class="lb-metric-label">Hours</div></div>
-          <div class="lb-metric"><div class="lb-metric-val">${m.aq.toFixed(1)}★</div><div class="lb-metric-label">Quality</div></div>
-          <div class="lb-metric"><div class="lb-metric-val">${m.earn.toFixed(0)}</div><div class="lb-metric-label">EGP</div></div>
-        </div>
-      </div>`).join('');
-  }
-
-  const tbody = document.getElementById('lbBody');
-  if (!tbody) return;
-  const maxScore = ranked[0]?.score||1;
-  tbody.innerHTML = ranked.map((m,i) => `
+  const wf=document.getElementById('weekSel')?.value||'all'
+  const ranked=getRanked(wf)
+  const medals=['🥇','🥈','🥉']
+  const grid=document.getElementById('lbTopGrid')
+  if (grid) grid.innerHTML=ranked.slice(0,3).map((m,i)=>`
+    <div class="lb-card">
+      <div class="lb-card-top">
+        <span style="font-size:20px">${medals[i]||'#'+(i+1)}</span>
+        <div class="av" style="background:${m.color}">${initials(m.name)}</div>
+        <div style="flex:1"><div class="lb-name">${m.name}</div><div class="lb-role">${m.role}</div></div>
+        <span class="badge ${m.status==='active'?'badge-active':'badge-tawaquf'}">${m.status==='active'?'Active':'Tawaquf'}</span>
+      </div>
+      <div class="lb-metrics-row">
+        <div class="lb-metric"><div class="lb-metric-val">${m.totalH.toFixed(1)}</div><div class="lb-metric-label">Hours</div></div>
+        <div class="lb-metric"><div class="lb-metric-val">${m.aq.toFixed(1)}★</div><div class="lb-metric-label">Quality</div></div>
+        <div class="lb-metric"><div class="lb-metric-val">${(+m.earn).toFixed(0)}</div><div class="lb-metric-label">EGP</div></div>
+      </div>
+    </div>`).join('')
+  const tbody=document.getElementById('lbBody'), maxScore=ranked[0]?.score||1
+  tbody.innerHTML=ranked.map((m,i)=>`
     <tr>
       <td style="font-size:18px">${medals[i]||'#'+(i+1)}</td>
       <td><div class="worker-info">
         <div class="av" style="background:${m.color}">${initials(m.name)}</div>
         <div><div class="worker-name">${m.name}</div><div class="worker-sub">${m.role}</div></div>
       </div></td>
-      <td style="font-variant-numeric:tabular-nums">${m.totalH.toFixed(2)}h</td>
+      <td>${m.totalH.toFixed(2)}h</td>
       <td>${starsHTML(Math.round(m.aq))} <span style="font-size:12px;color:var(--text-tertiary)">${m.aq.toFixed(1)}</span></td>
-      <td style="font-weight:600;font-variant-numeric:tabular-nums">${m.earn.toFixed(0)} EGP</td>
-      <td style="min-width:120px"><div class="lb-score-bar">
+      <td style="font-weight:600">${(+m.earn).toFixed(0)} EGP</td>
+      <td><div class="lb-score-bar">
         <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${(m.score/maxScore*100).toFixed(0)}%"></div></div>
         <div class="lb-score-num">${m.score.toFixed(1)}</div>
       </div></td>
       <td><span class="badge ${m.status==='active'?'badge-active':'badge-tawaquf'}">${m.status==='active'?'Active':'Tawaquf'}</span></td>
-    </tr>`).join('') || '<tr class="empty-row"><td colspan="7">No partner data yet</td></tr>';
+    </tr>`).join('') || '<tr class="empty-row"><td colspan="7">No data yet</td></tr>'
 }
 
-// ════════════════════════════════════
+// ════════════════════════════════════════
 //  SETTINGS
-// ════════════════════════════════════
+// ════════════════════════════════════════
 function renderSettings() {
-  document.getElementById('settingRate').value  = S.rate;
-  document.getElementById('settingShare').value = S.mitraShare;
-  document.getElementById('companyShareDisp').textContent = (100-S.mitraShare)+'%';
-  renderAreasList();
+  document.getElementById('settingRate').value  = S.rate
+  document.getElementById('settingShare').value = S.mitraShare
+  document.getElementById('companyShareDisp').textContent = (100-S.mitraShare)+'%'
+  renderAreasList()
 }
-function updateRate(v)  { S.rate = parseFloat(v)||400; save(); }
-function updateShare(v) { S.mitraShare=parseFloat(v)||80; document.getElementById('companyShareDisp').textContent=(100-S.mitraShare)+'%'; save(); }
+async function updateRate(v) {
+  S.rate=parseFloat(v)||400
+  await supa.from('settings').update({rate:S.rate}).eq('id',1)
+  toast('Rate updated')
+}
+async function updateShare(v) {
+  S.mitraShare=parseFloat(v)||80
+  document.getElementById('companyShareDisp').textContent=(100-S.mitraShare)+'%'
+  await supa.from('settings').update({mitra_share:S.mitraShare}).eq('id',1)
+  toast('Share updated')
+}
 function renderAreasList() {
-  const el=document.getElementById('areasList'); if(!el) return;
-  el.innerHTML = S.areas.map((a,i)=>`
+  const el=document.getElementById('areasList'); if(!el)return
+  el.innerHTML=S.areas.map((a,i)=>`
     <div class="area-tag"><span>${a}</span>
       <button class="btn btn-danger-soft btn-xs" onclick="removeArea(${i})">Remove</button>
-    </div>`).join('');
+    </div>`).join('')
 }
-function addArea() {
-  const inp=document.getElementById('newAreaInp'); const v=inp.value.trim();
-  if(!v||S.areas.includes(v)){alert('Area already exists or empty'); return;}
-  S.areas.push(v); inp.value=''; save(); renderAreasList(); syncAreaDropdowns();
+async function addArea() {
+  const inp=document.getElementById('newAreaInp'), v=inp.value.trim()
+  if(!v||S.areas.includes(v)){toast('Area already exists or empty','err');return}
+  S.areas.push(v); inp.value=''
+  await supa.from('settings').update({areas:S.areas}).eq('id',1)
+  renderAreasList(); syncDropdowns(); toast('Area added')
 }
-function removeArea(i) { S.areas.splice(i,1); save(); renderAreasList(); syncAreaDropdowns(); }
+async function removeArea(i) {
+  S.areas.splice(i,1)
+  await supa.from('settings').update({areas:S.areas}).eq('id',1)
+  renderAreasList(); syncDropdowns(); toast('Area removed')
+}
 function exportData() {
-  const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='pristine_data.json'; a.click();
+  const b=new Blob([JSON.stringify({partners:S.partners,jobs:S.jobs,rate:S.rate,mitraShare:S.mitraShare,areas:S.areas},null,2)],{type:'application/json'})
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='pristine_backup.json'; a.click()
+  toast('Data exported!')
 }
-function importData() {
-  const inp=document.createElement('input'); inp.type='file'; inp.accept='.json';
-  inp.onchange=e=>{
-    const r=new FileReader(); r.onload=ev=>{
-      try { S={...S,...JSON.parse(ev.target.result)}; save(); renderDashboard(); alert('Imported!'); } catch{ alert('Invalid JSON'); }
-    }; r.readAsText(e.target.files[0]);
-  }; inp.click();
-}
-function clearAllData() {
-  showConfirm('Clear All Data','This will permanently delete all jobs, partners, and activities.',()=>{
-    S.jobs=[]; S.partners=[]; S.activities=[]; save();
-    renderDashboard(); renderJobsTable(); renderPartnersPage();
-  });
+async function clearAllData() {
+  showConfirm('Clear All Data','Delete ALL jobs and partners permanently?', async()=>{
+    showLoading('Clearing data…')
+    await Promise.all([supa.from('jobs').delete().neq('id','00000000-0000-0000-0000-000000000000'),supa.from('partners').delete().neq('id','00000000-0000-0000-0000-000000000000')])
+    await loadAllData(); hideLoading()
+    renderDashboard(); renderJobsTable(); renderPartnersPage()
+    toast('All data cleared','ok')
+  })
 }
 
-// ════════════════════════════════════
-//  MODAL HELPERS
-// ════════════════════════════════════
-function openModal(id) {
-  if(id==='jobModal') resetJobForm();
-  if(id==='partnerModal') resetPartnerForm();
-  document.getElementById(id).classList.add('open');
-}
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-function overlayClose(e,id) { if(e.target===document.getElementById(id)) closeModal(id); }
-
-// ════════════════════════════════════
+// ════════════════════════════════════════
 //  JOB MODAL
-// ════════════════════════════════════
-function resetJobForm() {
-  document.getElementById('jobModalTitle').textContent='Add New Job';
-  document.getElementById('editJobId').value='';
-  document.getElementById('jobWorker').value='';
-  document.getElementById('jobDate').value=fmtDate(new Date());
-  document.getElementById('jobArea').value='';
-  document.getElementById('jobH').value='';
-  document.getElementById('jobM').value='';
-  document.getElementById('jobNotes').value='';
-  document.getElementById('expBlock').style.display='none';
-  document.getElementById('wageHint').textContent='Gross wage: 0 EGP';
-  document.getElementById('expHint').textContent='Expenses: 0 EGP · Net: 0 EGP';
-  document.querySelectorAll('[name="q"]').forEach(r=>r.checked=false);
-  refreshStarLabels(0);
-  ['eSabun','eSponge','eTransport','eOther'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  syncWorkerDropdowns(); syncAreaDropdowns();
+// ════════════════════════════════════════
+function openJobModal() {
+  document.getElementById('jobModalTitle').textContent = 'Add New Job'
+  document.getElementById('editJobId').value = ''
+  document.getElementById('jobWorker').value = ''
+  document.getElementById('jobDate').value   = fD(new Date())
+  document.getElementById('jobArea').value   = ''
+  document.getElementById('jobH').value = ''; document.getElementById('jobM').value = ''
+  document.getElementById('jobNotes').value = ''
+  document.getElementById('expBlock').style.display = 'none'
+  document.getElementById('wageHint').textContent = 'Gross wage: 0 EGP'
+  document.getElementById('expHint').textContent  = 'Expenses: 0 EGP · Net: 0 EGP'
+  document.querySelectorAll('[name="q"]').forEach(r=>r.checked=false)
+  refreshStars(0)
+  ;['eSabun','eSponge','eTransport','eOther'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  syncDropdowns()
 }
 
 function onWorkerChange() {
-  const isOwner = document.getElementById('jobWorker').value==='Owner';
-  document.getElementById('expBlock').style.display = isOwner?'block':'none';
-  previewWage();
+  document.getElementById('expBlock').style.display = document.getElementById('jobWorker').value==='Owner' ? 'block' : 'none'
+  previewWage()
 }
 
 function previewWage() {
-  const h=parseFloat(document.getElementById('jobH').value)||0;
-  const m=parseFloat(document.getElementById('jobM').value)||0;
-  const g=wage(h,m);
-  document.getElementById('wageHint').textContent=`Gross wage: ${g.toFixed(2)} EGP`;
-  const isOwner=document.getElementById('jobWorker').value==='Owner';
-  if(isOwner) {
-    const e=(parseFloat(document.getElementById('eSabun').value)||0)+(parseFloat(document.getElementById('eSponge').value)||0)+(parseFloat(document.getElementById('eTransport').value)||0)+(parseFloat(document.getElementById('eOther').value)||0);
-    document.getElementById('expHint').textContent=`Expenses: ${e.toFixed(2)} EGP · Net: ${(g-e).toFixed(2)} EGP`;
+  const h=parseFloat(document.getElementById('jobH').value)||0, m=parseFloat(document.getElementById('jobM').value)||0
+  const g=calcWage(h,m)
+  document.getElementById('wageHint').textContent=`Gross wage: ${g.toFixed(2)} EGP`
+  if (document.getElementById('jobWorker').value==='Owner') {
+    const e=(parseFloat(document.getElementById('eSabun').value)||0)+(parseFloat(document.getElementById('eSponge').value)||0)+(parseFloat(document.getElementById('eTransport').value)||0)+(parseFloat(document.getElementById('eOther').value)||0)
+    document.getElementById('expHint').textContent=`Expenses: ${e.toFixed(2)} EGP · Net: ${(g-e).toFixed(2)} EGP`
   }
 }
 
-document.getElementById('starRow').addEventListener('change', e => refreshStarLabels(parseInt(e.target.value)));
-function refreshStarLabels(v) {
-  document.querySelectorAll('.star-input-row label').forEach((l,i)=>l.classList.toggle('on',i<v));
-}
-function getQ() { const r=document.querySelector('[name="q"]:checked'); return r?parseInt(r.value):0; }
+document.getElementById('starRow').addEventListener('change',e=>refreshStars(parseInt(e.target.value)))
+function refreshStars(v){document.querySelectorAll('.star-input-row label').forEach((l,i)=>l.classList.toggle('on',i<v))}
+function getQ(){const r=document.querySelector('[name="q"]:checked');return r?parseInt(r.value):0}
 
-function saveJob() {
-  const worker=document.getElementById('jobWorker').value;
-  const date=document.getElementById('jobDate').value;
-  const area=document.getElementById('jobArea').value;
-  const h=parseFloat(document.getElementById('jobH').value)||0;
-  const m=parseFloat(document.getElementById('jobM').value)||0;
-  const q=getQ();
-  const notes=document.getElementById('jobNotes').value;
-  if(!worker) return alert('Select a worker');
-  if(!date)   return alert('Select a date');
-  if(!area)   return alert('Select an area');
-  if(!h&&!m)  return alert('Enter duration');
-  if(!q)      return alert('Rate the quality');
-  const isOwner=worker==='Owner';
-  const exp = isOwner?{
-    sabun:parseFloat(document.getElementById('eSabun').value)||0,
-    sponge:parseFloat(document.getElementById('eSponge').value)||0,
-    transport:parseFloat(document.getElementById('eTransport').value)||0,
-    other:parseFloat(document.getElementById('eOther').value)||0
-  }:{};
-  const wid=isOwner?'owner':(S.partners.find(p=>p.name===worker)?.id||'');
-  const eid=document.getElementById('editJobId').value;
-  if(eid) {
-    const idx=S.jobs.findIndex(j=>j.id===eid);
-    if(idx!==-1) S.jobs[idx]={...S.jobs[idx],worker,wid,date,area,h,m,q,notes,exp,isOwner};
-    addAct(`Job updated: <strong>${area}</strong>`,'just now · Admin','#d97706');
-  } else {
-    S.jobs.push({id:'j'+Date.now(),worker,wid,date,area,h,m,q,notes,exp,isOwner});
-    addAct(`Job logged: <strong>${area}</strong>`,'just now · Admin','#0a0a0a');
+async function saveJob() {
+  const worker=document.getElementById('jobWorker').value
+  const date  =document.getElementById('jobDate').value
+  const area  =document.getElementById('jobArea').value
+  const h=parseFloat(document.getElementById('jobH').value)||0
+  const m=parseFloat(document.getElementById('jobM').value)||0
+  const q=getQ(), notes=document.getElementById('jobNotes').value
+  if(!worker)return alert('Select a worker')
+  if(!date)  return alert('Select a date')
+  if(!area)  return alert('Select an area')
+  if(!h&&!m) return alert('Enter duration')
+  if(!q)     return alert('Rate the quality (1-5 stars)')
+  const isOwner=worker==='Owner'
+  const partnerId=isOwner?null:(S.partners.find(p=>p.name===worker)?.id||null)
+  const row={
+    worker, worker_id:partnerId, is_owner:isOwner,
+    date, area, hours:h, minutes:m, quality:q, notes,
+    exp_sabun:     isOwner?(parseFloat(document.getElementById('eSabun').value)||0):0,
+    exp_sponge:    isOwner?(parseFloat(document.getElementById('eSponge').value)||0):0,
+    exp_transport: isOwner?(parseFloat(document.getElementById('eTransport').value)||0):0,
+    exp_other:     isOwner?(parseFloat(document.getElementById('eOther').value)||0):0,
   }
-  save(); closeModal('jobModal'); renderDashboard(); renderJobsTable();
+  setBtnLoading('saveJobBtn', true)
+  const eid=document.getElementById('editJobId').value
+  let err
+  if (eid) { const r=await supa.from('jobs').update(row).eq('id',eid); err=r.error }
+  else     { const r=await supa.from('jobs').insert(row); err=r.error }
+  setBtnLoading('saveJobBtn', false)
+  if (err) { toast('Error: '+err.message,'err'); return }
+  addAct(`Job ${eid?'updated':'logged'}: <strong>${area}</strong>`,'just now · '+S.currentProfile?.name,'#0a0a0a')
+  closeModal('jobModal')
+  await loadAllData(); renderDashboard(); renderJobsTable()
+  toast(eid?'Job updated!':'Job saved!','ok')
 }
 
 function editJob(id) {
-  const j=S.jobs.find(x=>x.id===id); if(!j) return;
-  syncWorkerDropdowns(); syncAreaDropdowns();
-  openModal('jobModal');
-  document.getElementById('jobModalTitle').textContent='Edit Job';
-  document.getElementById('editJobId').value=id;
-  document.getElementById('jobWorker').value=j.worker;
-  document.getElementById('jobDate').value=j.date;
-  document.getElementById('jobArea').value=j.area;
-  document.getElementById('jobH').value=j.h;
-  document.getElementById('jobM').value=j.m;
-  document.getElementById('jobNotes').value=j.notes||'';
-  document.getElementById('expBlock').style.display=j.isOwner?'block':'none';
+  const j=S.jobs.find(x=>x.id===id); if(!j)return
+  openModal('jobModal')
+  document.getElementById('jobModalTitle').textContent='Edit Job'
+  document.getElementById('editJobId').value=id
+  document.getElementById('jobWorker').value=j.worker
+  document.getElementById('jobDate').value=j.date
+  document.getElementById('jobH').value=j.h
+  document.getElementById('jobM').value=j.m
+  document.getElementById('jobNotes').value=j.notes||''
+  document.getElementById('expBlock').style.display=j.isOwner?'block':'none'
   if(j.isOwner&&j.exp){
-    document.getElementById('eSabun').value=j.exp.sabun||'';
-    document.getElementById('eSponge').value=j.exp.sponge||'';
-    document.getElementById('eTransport').value=j.exp.transport||'';
-    document.getElementById('eOther').value=j.exp.other||'';
+    document.getElementById('eSabun').value=j.exp.sabun||''
+    document.getElementById('eSponge').value=j.exp.sponge||''
+    document.getElementById('eTransport').value=j.exp.transport||''
+    document.getElementById('eOther').value=j.exp.other||''
   }
-  document.querySelectorAll('[name="q"]').forEach(r=>{ r.checked=parseInt(r.value)===j.q; });
-  refreshStarLabels(j.q);
-  previewWage();
+  // set area after sync
+  syncDropdowns()
+  setTimeout(()=>{
+    document.getElementById('jobArea').value=j.area
+    document.getElementById('jobWorker').value=j.worker
+    document.querySelectorAll('[name="q"]').forEach(r=>{r.checked=parseInt(r.value)===j.q})
+    refreshStars(j.q); previewWage()
+  },50)
 }
 
-// ════════════════════════════════════
+// ════════════════════════════════════════
 //  PARTNER MODAL
-// ════════════════════════════════════
-function resetPartnerForm() {
-  document.getElementById('partnerModalTitle').textContent='Add New Partner';
-  document.getElementById('editPartnerId').value='';
-  document.getElementById('pName').value='';
-  document.getElementById('pRole').value='';
-  document.getElementById('pContact').value='';
-  document.getElementById('pStatus').value='active';
-  document.getElementById('pColor').value='#0a0a0a';
-  S.selectedColor='#0a0a0a';
-  document.querySelectorAll('.color-opt').forEach(el=>el.classList.toggle('selected',el.dataset.c==='#0a0a0a'));
+// ════════════════════════════════════════
+function openPartnerModal(){
+  document.getElementById('partnerModalTitle').textContent='Add New Partner'
+  document.getElementById('editPartnerId').value=''
+  document.getElementById('pName').value=''
+  document.getElementById('pRole').value=''
+  document.getElementById('pContact').value=''
+  document.getElementById('pStatus').value='active'
+  document.getElementById('pColor').value='#0a0a0a'
+  document.querySelectorAll('.color-opt').forEach(el=>el.classList.toggle('sel',el.dataset.c==='#0a0a0a'))
 }
 
-function pickColor(c, el) {
-  S.selectedColor=c; document.getElementById('pColor').value=c;
-  document.querySelectorAll('.color-opt').forEach(e=>e.classList.remove('selected'));
-  el.classList.add('selected');
+function pickColor(c,el){
+  document.getElementById('pColor').value=c
+  document.querySelectorAll('.color-opt').forEach(e=>e.classList.remove('sel'))
+  el.classList.add('sel')
 }
 
-function savePartner() {
-  const name=document.getElementById('pName').value.trim();
-  const role=document.getElementById('pRole').value.trim();
-  if(!name) return alert('Enter partner name');
-  if(!role) return alert('Enter a role');
-  const obj={name,role,contact:document.getElementById('pContact').value.trim(),status:document.getElementById('pStatus').value,color:document.getElementById('pColor').value};
-  const eid=document.getElementById('editPartnerId').value;
-  if(eid) {
-    const idx=S.partners.findIndex(p=>p.id===eid);
-    if(idx!==-1) S.partners[idx]={...S.partners[idx],...obj};
-    addAct(`Partner updated: <strong>${name}</strong>`,'just now · Admin','#d97706');
-  } else {
-    S.partners.push({id:'p'+Date.now(),...obj});
-    addAct(`Partner added: <strong>${name}</strong>`,'just now · Admin','#16a34a');
-  }
-  save(); closeModal('partnerModal'); syncWorkerDropdowns();
-  renderDashboard(); renderPartnersPage();
+async function savePartner(){
+  const name=document.getElementById('pName').value.trim()
+  const role=document.getElementById('pRole').value.trim()
+  if(!name)return alert('Enter partner name')
+  if(!role)return alert('Enter a role')
+  const obj={name,role,contact:document.getElementById('pContact').value.trim(),status:document.getElementById('pStatus').value,color:document.getElementById('pColor').value}
+  setBtnLoading('savePartnerBtn',true)
+  const eid=document.getElementById('editPartnerId').value
+  let err
+  if(eid){ const r=await supa.from('partners').update(obj).eq('id',eid); err=r.error }
+  else   { const r=await supa.from('partners').insert(obj); err=r.error }
+  setBtnLoading('savePartnerBtn',false)
+  if(err){toast('Error: '+err.message,'err');return}
+  addAct(`Partner ${eid?'updated':'added'}: <strong>${name}</strong>`,'just now · '+S.currentProfile?.name,'#16a34a')
+  closeModal('partnerModal')
+  await loadAllData(); syncDropdowns()
+  renderDashboard(); renderPartnersPage()
+  toast(eid?'Partner updated!':'Partner added!','ok')
 }
 
-function editPartner(id) {
-  const p=S.partners.find(x=>x.id===id); if(!p) return;
-  openModal('partnerModal');
-  document.getElementById('partnerModalTitle').textContent='Edit Partner';
-  document.getElementById('editPartnerId').value=id;
-  document.getElementById('pName').value=p.name;
-  document.getElementById('pRole').value=p.role;
-  document.getElementById('pContact').value=p.contact||'';
-  document.getElementById('pStatus').value=p.status;
-  document.getElementById('pColor').value=p.color;
-  S.selectedColor=p.color;
-  document.querySelectorAll('.color-opt').forEach(el=>el.classList.toggle('selected',el.dataset.c===p.color));
+function editPartner(id){
+  const p=S.partners.find(x=>x.id===id); if(!p)return
+  openModal('partnerModal')
+  document.getElementById('partnerModalTitle').textContent='Edit Partner'
+  document.getElementById('editPartnerId').value=id
+  document.getElementById('pName').value=p.name
+  document.getElementById('pRole').value=p.role
+  document.getElementById('pContact').value=p.contact||''
+  document.getElementById('pStatus').value=p.status
+  document.getElementById('pColor').value=p.color
+  document.querySelectorAll('.color-opt').forEach(el=>el.classList.toggle('sel',el.dataset.c===p.color))
 }
 
-function toggleStatus(id,active) {
-  const p=S.partners.find(x=>x.id===id); if(!p) return;
-  p.status=active?'active':'tawaquf';
-  addAct(`Status: <strong>${p.name} → ${p.status==='active'?'Active':'Tawaquf'}</strong>`,'just now · Manual',p.status==='active'?'#16a34a':'#dc2626');
-  save(); renderDashboard(); renderPartnersPage();
+async function toggleStatus(id,active){
+  if(S.role!=='admin'){toast('Admin only','err');return}
+  const p=S.partners.find(x=>x.id===id); if(!p)return
+  const newStatus=active?'active':'tawaquf'
+  const {error}=await supa.from('partners').update({status:newStatus}).eq('id',id)
+  if(error){toast('Error: '+error.message,'err');return}
+  addAct(`Status: <strong>${p.name} → ${newStatus==='active'?'Active':'Tawaquf'}</strong>`,'just now · Manual',newStatus==='active'?'#16a34a':'#dc2626')
+  await loadAllData(); renderDashboard(); renderPartnersPage()
+  toast('Status updated','ok')
 }
 
-// ════════════════════════════════════
-//  CONFIRM / DELETE
-// ════════════════════════════════════
-let confCb=null;
-function showConfirm(title,text,cb) {
-  document.getElementById('confTitle').textContent=title;
-  document.getElementById('confText').textContent=text;
-  confCb=cb;
-  document.getElementById('confBtn').onclick=()=>{ confCb&&confCb(); closeModal('confirmModal'); };
-  openModal('confirmModal');
+// ════════════════════════════════════════
+//  DELETE / CONFIRM
+// ════════════════════════════════════════
+let confCb=null
+function showConfirm(title,text,cb){
+  document.getElementById('confTitle').textContent=title
+  document.getElementById('confText').textContent=text
+  confCb=cb
+  document.getElementById('confBtn').onclick=async()=>{ await confCb?.(); closeModal('confirmModal') }
+  openModal('confirmModal')
 }
-function confirmDel(type,id) {
-  const isJob=type==='job';
-  const item=isJob?S.jobs.find(j=>j.id===id):S.partners.find(p=>p.id===id);
-  const label=isJob?`job in ${item?.area}`:item?.name;
-  showConfirm(`Delete ${isJob?'Job':'Partner'}`,`Delete "${label}"? This cannot be undone.`,()=>{
-    if(isJob) S.jobs=S.jobs.filter(j=>j.id!==id);
-    else { S.partners=S.partners.filter(p=>p.id!==id); S.jobs=S.jobs.filter(j=>j.wid!==id); }
-    addAct(`${isJob?'Job':'Partner'} deleted: <strong>${label}</strong>`,'just now · Admin','#dc2626');
-    save(); renderDashboard(); renderJobsTable(); renderPartnersPage();
-  });
+function confirmDel(type,id){
+  if(S.role!=='admin'){toast('Admin only','err');return}
+  const isJob=type==='job'
+  const item=isJob?S.jobs.find(j=>j.id===id):S.partners.find(p=>p.id===id)
+  const label=isJob?`job in ${item?.area}`:item?.name
+  showConfirm(`Delete ${isJob?'Job':'Partner'}`,`Delete "${label}"? This cannot be undone.`,async()=>{
+    showLoading('Deleting…')
+    if(isJob){ await supa.from('jobs').delete().eq('id',id) }
+    else {
+      await supa.from('jobs').delete().eq('worker_id',id)
+      await supa.from('partners').delete().eq('id',id)
+    }
+    addAct(`${isJob?'Job':'Partner'} deleted: <strong>${label}</strong>`,'just now · Admin','#dc2626')
+    await loadAllData(); hideLoading()
+    renderDashboard(); renderJobsTable(); renderPartnersPage()
+    syncDropdowns(); toast('Deleted successfully','ok')
+  })
 }
 
-// ════════════════════════════════════
+// ════════════════════════════════════════
+//  MODAL HELPERS
+// ════════════════════════════════════════
+function openModal(id){
+  if(id==='jobModal')     openJobModal()
+  if(id==='partnerModal') openPartnerModal()
+  document.getElementById(id).classList.add('open')
+}
+function closeModal(id){ document.getElementById(id).classList.remove('open') }
+function overlayClose(e,id){ if(e.target===document.getElementById(id)) closeModal(id) }
+
+// ════════════════════════════════════════
+//  SYNC DROPDOWNS
+// ════════════════════════════════════════
+function syncDropdowns(){
+  ;['jobWorker','filterWorker'].forEach(id=>{
+    const el=document.getElementById(id); if(!el)return
+    const v=el.value, isFilt=id==='filterWorker'
+    el.innerHTML=(isFilt?'<option value="">All Workers</option>':'<option value="">Select worker…</option>')
+      +'<option value="Owner">Owner'+(isFilt?'':' (Admin)')+'</option>'
+      +S.partners.map(p=>`<option value="${p.name}" ${v===p.name?'selected':''}>${p.name}${isFilt?'':' (Mitra)'}</option>`).join('')
+  })
+  ;['jobArea','filterArea'].forEach(id=>{
+    const el=document.getElementById(id); if(!el)return
+    const v=el.value, isFilt=id==='filterArea'
+    el.innerHTML=(isFilt?'<option value="">All Areas</option>':'<option value="">Select area…</option>')
+      +S.areas.map(a=>`<option ${v===a?'selected':''}>${a}</option>`).join('')
+  })
+}
+
+// ════════════════════════════════════════
 //  HELPERS
-// ════════════════════════════════════
-function starsHTML(r) {
-  let h='<div class="stars">';
-  for(let i=1;i<=5;i++) h+=`<span class="star ${i<=Math.round(r)?'on':''}">★</span>`;
-  return h+'</div>';
+// ════════════════════════════════════════
+function starsHTML(r){
+  let h='<div class="stars">'
+  for(let i=1;i<=5;i++) h+=`<span class="star ${i<=Math.round(r)?'on':''}">★</span>`
+  return h+'</div>'
 }
-function avgQ(pid) {
-  const j=S.jobs.filter(x=>x.wid===pid&&x.q); return j.length?j.reduce((a,x)=>a+x.q,0)/j.length:0;
+function addAct(t,m,c){ S.activities.unshift({t,m,c}); if(S.activities.length>20)S.activities.pop() }
+function iEdit(){return`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`}
+function iDel() {return`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>`}
+function showLoading(t='Loading…'){ document.getElementById('loadingOverlay').style.display='flex'; document.getElementById('loadingText').textContent=t }
+function hideLoading(){ document.getElementById('loadingOverlay').style.display='none' }
+function toast(msg,type=''){
+  const w=document.getElementById('toastWrap')
+  const el=document.createElement('div')
+  el.className='toast'+(type?' '+type:'')
+  el.textContent=msg; w.appendChild(el)
+  setTimeout(()=>el.remove(),3000)
 }
-function addAct(t,m,c) { S.activities.unshift({t,m,c}); if(S.activities.length>20) S.activities.pop(); }
-
-function syncWorkerDropdowns() {
-  ['jobWorker','filterWorker'].forEach(id=>{
-    const el=document.getElementById(id); if(!el) return;
-    const v=el.value;
-    const isFilter=id==='filterWorker';
-    el.innerHTML=(isFilter?'<option value="">All Workers</option>':'<option value="">Select worker…</option>')
-      +'<option value="Owner">Owner'+(isFilter?'':' (Admin)')+'</option>'
-      +S.partners.map(p=>`<option value="${p.name}" ${v===p.name?'selected':''}>${p.name}${isFilter?'':' (Mitra)'}</option>`).join('');
-  });
+function setBtnLoading(id,loading){
+  const el=document.getElementById(id); if(!el)return
+  el.disabled=loading; el.textContent=loading?'Saving…':'Save'
 }
-function syncAreaDropdowns() {
-  ['jobArea','filterArea'].forEach(id=>{
-    const el=document.getElementById(id); if(!el) return;
-    const v=el.value;
-    const isFilter=id==='filterArea';
-    el.innerHTML=(isFilter?'<option value="">All Areas</option>':'<option value="">Select area…</option>')
-      +S.areas.map(a=>`<option ${v===a?'selected':''}>${a}</option>`).join('');
-  });
-}
-
-function handleSearch(q) {
-  if(!q) return;
-  const lq=q.toLowerCase();
-  if(S.partners.some(p=>p.name.toLowerCase().includes(lq))||S.jobs.some(j=>j.area.toLowerCase().includes(lq)||j.worker.toLowerCase().includes(lq))) {
-    showPage('jobs',document.querySelector('[data-page="jobs"]'));
-    const fw=document.getElementById('filterWorker');
-    const pm=S.partners.find(p=>p.name.toLowerCase().includes(lq));
-    if(pm&&fw) fw.value=pm.name;
-    renderJobsTable();
+function handleSearch(q){
+  if(!q)return
+  const lq=q.toLowerCase()
+  if(S.partners.some(p=>p.name.toLowerCase().includes(lq))||S.jobs.some(j=>j.area.toLowerCase().includes(lq))){
+    showPage('jobs',document.querySelector('[data-page=jobs]'))
+    const pm=S.partners.find(p=>p.name.toLowerCase().includes(lq))
+    const fw=document.getElementById('filterWorker')
+    if(pm&&fw) fw.value=pm.name
+    renderJobsTable()
   }
 }
 
-function iconEdit() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`; }
-function iconDel()  { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>`; }
-
-// ════════════════════════════════════
+// ════════════════════════════════════════
 //  INIT
-// ════════════════════════════════════
-load();
-const hr=new Date().getHours();
-const greet=hr<12?'Good morning':'hr'<17?'Good afternoon':'Good evening';
-renderDashboard();
-syncWorkerDropdowns(); syncAreaDropdowns();
+// ════════════════════════════════════════
+async function init(){
+  showLoading('Checking session…')
+  const session = await checkSession()
+  hideLoading()
+  if (session) {
+    S.currentUser = session.user
+    await loadProfile()
+    await bootApp()
+  } else {
+    document.getElementById('loginPage').style.display='flex'
+  }
+}
+
+// Auth state listener
+supa.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT') doLogout()
+})
+
+init()
 </script>
 </body>
 </html>
